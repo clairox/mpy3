@@ -1,9 +1,7 @@
 """
-main.py
-
 This is the entry point for the application. It sets up the necessary directories and 
 starts the media player application by creating an instance of the `App` class and 
-calling its `run()` method to start playback.
+calling its `run()` method.
 """
 
 from pathlib import Path
