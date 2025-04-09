@@ -1,0 +1,5 @@
+evdev==1.9.1
+platformdirs==4.3.7
+python-vlc==3.0.21203
+python-xlib==0.33
+six==1.17.0
