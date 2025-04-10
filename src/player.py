@@ -116,9 +116,7 @@ class Player:
         """
 
         try:
-            self.player.play_item_at_index(2)
-            self.seek(self.current_media.get_duration() - 2000)
-            # self.seek(self.current_media_player.get_time() + SEEK_INTERVAL)
+            self.seek(self.current_media_player.get_time() + SEEK_INTERVAL)
         except Exception as e:
             print(f"Could not fast forward: {e}")
 
