@@ -4,7 +4,7 @@
 - [x] Add Skip next/Go back
 - [ ] Store current track and time in cache
 - [ ] Improve logging
-- [ ] Use command-line arguments
-  - [ ] Input device path
-  - [ ] Playback mode
-  - [ ] Media directory
+- [x] Use command-line arguments
+  - [x] Input device path
+  - [x] Playback mode
+  - [x] Media directory
