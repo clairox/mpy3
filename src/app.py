@@ -13,6 +13,7 @@ from evdev import InputDevice, InputEvent, ecodes
 from player import Player
 
 SEEK_INTERVAL = 5000
+ALLOWED_FILE_TYPES = [".mp3"]
 
 
 class Control(Enum):
@@ -24,7 +25,10 @@ class Control(Enum):
     PLAY = 1
     FFORWARD = 2
     REWIND = 3
-    QUIT = 4
+    NEXT = 4
+    BACK = 5
+    QUIT = 6
+    STOP = 7
 
 
 class App:
@@ -42,12 +46,18 @@ class App:
         Runs the main application
         """
 
-        media_list = os.listdir(self.media_dir)
+        os.chdir(self.media_dir)
+
+        media_list = [
+            f
+            for f in sorted(Path.cwd().iterdir())
+            if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
+        ]
         if len(media_list) == 0:
-            sys.exit("No media found. Exiting")
-        else:
-            self.player.set_mrl(self.media_dir / media_list[0])
-            self.player.play_until_done()
+            sys.exit("No media found. Exiting.")
+
+        self.player.set_media_list(media_list)
+        self.player.play_until_done()
 
         device = InputDevice(self.input_device_path)
 
@@ -69,14 +79,24 @@ class App:
             else:
                 self.player.play_until_done()
 
-        if control == Control.FFORWARD:
+        elif control == Control.STOP:
+            self.player.stop()
+
+        elif control == Control.FFORWARD:
             self.player.fast_forward()
 
-        if control == Control.REWIND:
+        elif control == Control.REWIND:
             self.player.rewind()
 
-        if control == Control.QUIT:
+        elif control == Control.NEXT:
+            self.player.next()
+
+        elif control == Control.BACK:
+            self.player.back()
+
+        elif control == Control.QUIT:
             sys.exit("Exiting.")
+
     def __handle_input(self, event: InputEvent) -> None:
         if event.type != ecodes.EV_KEY:
             return
@@ -84,9 +104,21 @@ class App:
         if event.value == 1:
             if event.code == ecodes.KEY_SPACE:
                 self.update(Control.PLAY)
-            if event.code == ecodes.KEY_RIGHT:
+            elif event.code == ecodes.KEY_ENTER:
+                self.update(Control.STOP)
+            elif event.code == ecodes.KEY_RIGHT:
                 self.update(Control.FFORWARD)
-            if event.code == ecodes.KEY_LEFT:
+            elif event.code == ecodes.KEY_LEFT:
                 self.update(Control.REWIND)
-            if event.code == ecodes.KEY_Q:
+            elif event.code == ecodes.KEY_N:
+                self.update(Control.NEXT)
+            elif event.code == ecodes.KEY_P:
+                self.update(Control.BACK)
+            elif event.code == ecodes.KEY_Q:
                 self.update(Control.QUIT)
+
+    def __has_media(self, directory: Path) -> bool:
+        for f in directory.iterdir():
+            if f.is_file() and f.suffix.lower() in ALLOWED_FILE_TYPES:
+                return True
+        return False
