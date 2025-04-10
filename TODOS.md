@@ -4,4 +4,7 @@
 - [x] Add Skip next/Go back
 - [ ] Store current track and time in cache
 - [ ] Improve logging
-- [ ] Move KEYBOARD_PATH to environment variable
+- [ ] Use command-line arguments
+  - [ ] Input device path
+  - [ ] Playback mode
+  - [ ] Media directory
