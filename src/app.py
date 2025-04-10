@@ -116,9 +116,3 @@ class App:
                 self.update(Control.BACK)
             elif event.code == ecodes.KEY_Q:
                 self.update(Control.QUIT)
-
-    def __has_media(self, directory: Path) -> bool:
-        for f in directory.iterdir():
-            if f.is_file() and f.suffix.lower() in ALLOWED_FILE_TYPES:
-                return True
-        return False
