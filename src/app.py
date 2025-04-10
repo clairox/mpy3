@@ -36,10 +36,10 @@ class App:
     Main application which manages media playback and handles input controls
     """
 
-    def __init__(self, media_dir: Path, input_device_path: Path) -> None:
+    def __init__(self, media_dir: Path, input_device_path: Path, mode: str) -> None:
         self.media_dir = media_dir
         self.input_device_path = input_device_path
-        self.player: Player = Player()  # type: ignore
+        self.player: Player = Player(mode=mode)  # type: ignore
 
     def run(self) -> None:
         """

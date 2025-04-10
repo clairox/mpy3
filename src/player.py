@@ -46,10 +46,16 @@ class Player:
     Handles vlc.MediaListPlayer playback
     """
 
-    def __init__(self):
+    def __init__(self, mode: str):
         self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
         self.media_list: MediaList = MediaList([])  # type: ignore
-        self.playback_mode = DEFAULT_PB_MODE
+
+        if mode == "loop":
+            self.playback_mode = LOOP_PB_MODE
+        elif mode == "repeat":
+            self.playback_mode = REPEAT_PB_MODE
+        else:
+            self.playback_mode = DEFAULT_PB_MODE
 
         self.player.set_playback_mode(self.playback_mode)
 
