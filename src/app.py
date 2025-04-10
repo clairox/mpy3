@@ -25,6 +25,7 @@ class Control(Enum):
     PLAY = 1
     FFORWARD = 2
     REWIND = 3
+    QUIT = 4
 
 
 class App:
@@ -74,6 +75,8 @@ class App:
         if control == Control.REWIND:
             self.player.rewind()
 
+        if control == Control.QUIT:
+            sys.exit("Exiting.")
     def __handle_input(self, event: InputEvent) -> None:
         if event.type != ecodes.EV_KEY:
             return
@@ -85,3 +88,5 @@ class App:
                 self.update(Control.FFORWARD)
             if event.code == ecodes.KEY_LEFT:
                 self.update(Control.REWIND)
+            if event.code == ecodes.KEY_Q:
+                self.update(Control.QUIT)
