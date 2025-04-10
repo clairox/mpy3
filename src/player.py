@@ -3,13 +3,21 @@ This module contains the `Player` class which handles media playback
 using vlc.MediaPlayer
 """
 
-from enum import Enum
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
 from time import sleep
 
-from vlc import Event, EventType, Media, MediaList, MediaListPlayer, MediaPlayer, State
+from vlc import (
+    Event,
+    EventType,
+    Media,
+    MediaList,
+    MediaListPlayer,
+    MediaPlayer,
+    PlaybackMode,
+    State,
+)
 
 from utils import time_from_ms
 
@@ -25,21 +33,12 @@ IDLE_STATE = State(0)
 PLAYING_STATE = State(3)
 PAUSED_STATE = State(4)
 STOPPING_STATE = State(5)
+ENDED_STATE = State(6)
 
-
-class LoopMode(Enum):
-    """
-    Playback loop mode
-
-    OFF - Stop playback after last track in media list
-    ALL - Loop playback over entire media list
-    ONE - Loop playback over current track
-
-    """
-
-    OFF = 0
-    ALL = 1
-    ONE = 2
+# vlc.PlaybackModes
+DEFAULT_PB_MODE = PlaybackMode(0)
+LOOP_PB_MODE = PlaybackMode(1)
+REPEAT_PB_MODE = PlaybackMode(2)
 
 
 class Player:
@@ -50,13 +49,14 @@ class Player:
     def __init__(self):
         self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
         self.media_list: MediaList = MediaList([])  # type: ignore
+        self.playback_mode = DEFAULT_PB_MODE
+
+        self.player.set_playback_mode(self.playback_mode)
 
         self.current_media_player: MediaPlayer = self.player.get_media_player()
         self.current_media: Media = self.current_media_player.get_media()
 
         self.playback_thread: Thread = Thread(target=self.play)
-
-        self.loop_mode = LoopMode(1)
 
         self.current_media_player.event_manager().event_attach(
             MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE, self.on_play_begin
@@ -116,7 +116,9 @@ class Player:
         """
 
         try:
-            self.seek(self.current_media_player.get_time() + SEEK_INTERVAL)
+            self.player.play_item_at_index(2)
+            self.seek(self.current_media.get_duration() - 2000)
+            # self.seek(self.current_media_player.get_time() + SEEK_INTERVAL)
         except Exception as e:
             print(f"Could not fast forward: {e}")
 
@@ -141,11 +143,12 @@ class Player:
 
             next_idx = self.current_idx() + 1
             if next_idx >= self.media_list.count():
-                if self.loop_mode in (LoopMode.OFF, LoopMode.ONE):
+                if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
                     self.stop()
                     return
 
-                self.player.play_item_at_index(0)
+            if self.playback_mode == REPEAT_PB_MODE:
+                self.player.play_item_at_index(next_idx)
                 return
 
             self.player.next()
@@ -170,11 +173,12 @@ class Player:
 
             previous_index = self.current_idx() - 1
             if previous_index < 0:
-                if self.loop_mode in (LoopMode.OFF, LoopMode.ONE):
+                if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
                     self.player.play_item_at_index(0)
                     return
 
-                self.player.play_item_at_index(self.media_list.count() - 1)
+            if self.playback_mode == REPEAT_PB_MODE:
+                self.player.play_item_at_index(previous_index)
                 return
 
             self.player.previous()
@@ -217,20 +221,29 @@ class Player:
 
         state = self.current_media.get_state()
 
-        if state in (STOPPING_STATE, IDLE_STATE):
+        def reset() -> None:
             self.current_media.event_manager().event_detach(EventType(5))
-
-        if state == PLAYING_STATE:  # State.PLAYING
-            print("Playback resumed")
-        elif state == PAUSED_STATE:  # State.PAUSED
-            print(f"Paused at {time_from_ms(self.current_media_player.get_time())}")
-        elif state == STOPPING_STATE:  # State.STOPPING
             self.current_media_player = self.player.get_media_player()
             self.current_media = self.current_media_player.get_media()
 
             STOP_EVENT.set()
             self.playback_thread.join()
+
+        print(state)
+        if state == IDLE_STATE:
+            self.current_media.event_manager().event_detach(EventType(5))
+        elif state == PLAYING_STATE:  # State.PLAYING
+            print("Playback resumed")
+        elif state == PAUSED_STATE:  # State.PAUSED
+            print(f"Paused at {time_from_ms(self.current_media_player.get_time())}")
+        elif state == STOPPING_STATE:  # State.STOPPING
+            reset()
             print("Playback stopped")
+        elif state == ENDED_STATE:
+            if self.current_idx() == self.media_list.count() - 1:
+                if self.playback_mode == DEFAULT_PB_MODE:
+                    reset()
+                    print("Playback ended")
 
     def on_play_begin(self, _: Event) -> None:
         """
