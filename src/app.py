@@ -13,7 +13,6 @@ from evdev import InputDevice, InputEvent, ecodes
 from player import Player
 
 SEEK_INTERVAL = 5000
-KEYBOARD_PATH = "/dev/input/event3"
 
 
 class Control(Enum):
@@ -33,8 +32,9 @@ class App:
     Main application which manages media playback and handles input controls
     """
 
-    def __init__(self, media_dir: Path) -> None:
+    def __init__(self, media_dir: Path, input_device_path: Path) -> None:
         self.media_dir = media_dir
+        self.input_device_path = input_device_path
         self.player: Player = Player()  # type: ignore
 
     def run(self) -> None:
@@ -49,7 +49,7 @@ class App:
             self.player.set_mrl(self.media_dir / media_list[0])
             self.player.play_until_done()
 
-        device = InputDevice(KEYBOARD_PATH)
+        device = InputDevice(self.input_device_path)
 
         while True:
             for event in device.read_loop():
