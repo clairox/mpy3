@@ -307,8 +307,9 @@ class Player:
         Queue up media file for playback
         """
 
+        l = []
         if self.shuffle:
-            random.shuffle(mrls)
+            l = random.sample(mrls, len(mrls))
 
-        self.media_list = MediaList(mrls)  # type: ignore
+        self.media_list = MediaList(l)  # type: ignore
         self.player.set_media_list(self.media_list)
