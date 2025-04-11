@@ -5,12 +5,11 @@ device input to control playback
 
 import os
 import sys
-import termios
-import tty
 from enum import Enum
 from pathlib import Path
 
 from player import Player
+from terminalio import getch
 from utils import send_exit
 
 SEEK_INTERVAL = 5000
@@ -60,7 +59,7 @@ class App:
         self.player.play_until_done()
 
         while True:
-            key = self.getch()
+            key = getch()
             sys.stdout.write("\r")
             sys.stdout.flush()
             self.__handle_input(key)
@@ -96,24 +95,6 @@ class App:
 
         elif control == Control.QUIT:
             send_exit("Quitting.")
-
-    def getch(self):
-        """
-        Capture and return input
-        """
-
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            first = sys.stdin.read(1)
-            if first == "\x1b":
-                rest = sys.stdin.read(2)
-                return first + rest
-
-            return first
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
     def __handle_input(self, key: str) -> None:
         if key == " ":

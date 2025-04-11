@@ -9,4 +9,4 @@
   - [x] Playback mode
   - [x] Media directory
 - [x] Add shuffle
-- [ ] BUG send_exit() call on playback end messes with output formatting
+- [x] BUG send_exit() call on playback end messes with output formatting

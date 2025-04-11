@@ -5,6 +5,8 @@ Utility functions
 import os
 import sys
 
+from terminalio import reset_terminal
+
 
 def log(*values: object) -> None:
     """
@@ -21,8 +23,11 @@ def send_exit(status) -> None:
     Exit app and log a status message to console
     """
 
-    sys.stdout.write(status)
+    sys.stdout.write(f"\n{status}")
     sys.stdout.flush()
+
+    # Force terminal reset, in case it has not already happened
+    reset_terminal()
     os._exit(0)
 
 
