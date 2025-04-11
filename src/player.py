@@ -19,8 +19,7 @@ from vlc import (
     State,
 )
 
-from log import log
-from utils import time_from_ms
+from utils import log, time_from_ms
 
 SEEK_INTERVAL = 5000
 STOP_EVENT = ThreadEvent()

@@ -1,8 +1,18 @@
 """
-utils.py
-
-This module contains utility functions for handling time conversions and related tasks.
+Utility functions
 """
+
+import sys
+
+
+def log(*values: object) -> None:
+    """
+    Log and overwrite a single line to console
+    """
+
+    sys.stdout.write("\r\033[K")
+    sys.stdout.write(" ".join(str(v) for v in values))
+    sys.stdout.flush()
 
 
 def time_from_ms(ms: int) -> str:
