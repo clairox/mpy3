@@ -11,6 +11,7 @@ from pathlib import Path
 from platformdirs import user_music_dir
 
 from app import App
+from utils import send_exit
 
 MPY3_DIR = "mpy3"
 
@@ -20,10 +21,7 @@ if __name__ == "__main__":
         prog="mpy3", description="Just a simple mp3 player"
     )
     parser.add_argument(
-        "-i",
-        "--input-device",
-        type=Path,
-        help="Path to input device (e.g., /dev/input/event0)",
+        "-d", "--dir", type=Path, help="Path to directory containing media files"
     )
     parser.add_argument(
         "-m",
@@ -33,7 +31,7 @@ if __name__ == "__main__":
         help="Playback mode: default, loop playlist, repeat current track",
     )
     parser.add_argument(
-        "-d", "--dir", type=Path, help="Path to directory containing media files"
+        "-s", "--shuffle", action="store_true", help="Shuffle playback order"
     )
 
     args = parser.parse_args()
@@ -45,11 +43,8 @@ if __name__ == "__main__":
         media_dir = Path(args.dir)
     media_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.input_device is None:
-        sys.exit("Missing input device. Exiting.")
-
-    input_device = Path(args.input_device)
     playback_mode = args.mode
+    shuffle = args.shuffle
 
-    app = App(media_dir, input_device, playback_mode)
+    app = App(media_dir, playback_mode, shuffle)
     app.run()

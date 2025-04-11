@@ -3,6 +3,8 @@ This module contains the `Player` class which handles media playback
 using vlc.MediaPlayer
 """
 
+import random
+import sys
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
@@ -19,7 +21,7 @@ from vlc import (
     State,
 )
 
-from utils import log, time_from_ms
+from utils import log, send_exit, time_from_ms
 
 SEEK_INTERVAL = 5000
 STOP_EVENT = ThreadEvent()
@@ -46,7 +48,7 @@ class Player:
     Handles vlc.MediaListPlayer playback
     """
 
-    def __init__(self, mode: str):
+    def __init__(self, mode: str, shuffle: bool):
         self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
         self.media_list: MediaList = MediaList([])  # type: ignore
 
@@ -56,6 +58,8 @@ class Player:
             self.playback_mode = REPEAT_PB_MODE
         else:
             self.playback_mode = DEFAULT_PB_MODE
+
+        self.shuffle = shuffle
 
         self.player.set_playback_mode(self.playback_mode)
 
@@ -124,7 +128,8 @@ class Player:
         """
 
         try:
-            self.seek(self.current_media_player.get_time() + SEEK_INTERVAL)
+            time = self.current_media_player.get_time() + SEEK_INTERVAL
+            self.seek(time)
         except Exception as e:
             print(f"Could not fast forward: {e}")
 
@@ -134,7 +139,8 @@ class Player:
         """
 
         try:
-            self.seek(self.current_media_player.get_time() - SEEK_INTERVAL)
+            time = self.current_media_player.get_time() - SEEK_INTERVAL
+            self.seek(time)
         except Exception as e:
             print(f"Could not rewind: {e}")
 
@@ -239,23 +245,23 @@ class Player:
 
         if state == IDLE_STATE:
             self.current_media.event_manager().event_detach(EventType(5))
-        elif state == PLAYING_STATE:  # State.PLAYING
+        elif state == PLAYING_STATE:
             if self.media_starting is True:
                 self.media_starting = False
             else:
                 log(f"{filename} - Playing")
-        elif state == PAUSED_STATE:  # State.PAUSED
+        elif state == PAUSED_STATE:
             log(
                 f"{filename} - Paused at {time_from_ms(self.current_media_player.get_time())}"
             )
-        elif state == STOPPING_STATE:  # State.STOPPING
+        elif state == STOPPING_STATE:
             reset()
-            log("Playback stopped")
+            send_exit("Playback stopped.")
         elif state == ENDED_STATE:
             if self.current_idx() == self.media_list.count() - 1:
                 if self.playback_mode == DEFAULT_PB_MODE:
                     reset()
-                    log("Playback ended")
+                    send_exit("Playback ended.")
 
     def on_play_begin(self, _: Event) -> None:
         """
@@ -301,6 +307,9 @@ class Player:
         """
         Queue up media file for playback
         """
+
+        if self.shuffle:
+            random.shuffle(mrls)
 
         self.media_list = MediaList(mrls)  # type: ignore
         self.player.set_media_list(self.media_list)

@@ -11,6 +11,7 @@ from enum import Enum
 from pathlib import Path
 
 from player import Player
+from utils import send_exit
 
 SEEK_INTERVAL = 5000
 ALLOWED_FILE_TYPES = [".mp3"]
@@ -36,10 +37,9 @@ class App:
     Main application which manages media playback and handles input controls
     """
 
-    def __init__(self, media_dir: Path, input_device_path: Path, mode: str) -> None:
+    def __init__(self, media_dir: Path, mode: str, shuffle: bool) -> None:
         self.media_dir = media_dir
-        self.input_device_path = input_device_path
-        self.player: Player = Player(mode=mode)  # type: ignore
+        self.player: Player = Player(mode=mode, shuffle=shuffle)  # type: ignore
 
     def run(self) -> None:
         """
@@ -54,13 +54,10 @@ class App:
             if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
         ]
         if len(media_list) == 0:
-            sys.stdout.write("\r\033[K")
-            sys.exit("No media found. Exiting.")
+            send_exit("No media found. Exiting.")
 
         self.player.set_media_list(media_list)
         self.player.play_until_done()
-
-        # device = InputDevice(self.input_device_path)
 
         while True:
             key = self.getch()
@@ -98,8 +95,7 @@ class App:
             self.player.back()
 
         elif control == Control.QUIT:
-            sys.stdout.write("\r\033[K")
-            sys.exit("Quitting.")
+            send_exit("Quitting.")
 
     def getch(self):
         """

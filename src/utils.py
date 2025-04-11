@@ -2,6 +2,7 @@
 Utility functions
 """
 
+import os
 import sys
 
 
@@ -10,9 +11,19 @@ def log(*values: object) -> None:
     Log and overwrite a single line to console
     """
 
-    sys.stdout.write("\r\033[K")
+    sys.stdout.write("\r\033[2K")
     sys.stdout.write(" ".join(str(v) for v in values))
     sys.stdout.flush()
+
+
+def send_exit(status) -> None:
+    """
+    Exit app and log a status message to console
+    """
+
+    sys.stdout.write(status)
+    sys.stdout.flush()
+    os._exit(0)
 
 
 def time_from_ms(ms: int) -> str:
