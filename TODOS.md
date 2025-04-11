@@ -8,3 +8,4 @@
   - [x] Input device path
   - [x] Playback mode
   - [x] Media directory
+- [ ] Add shuffle
