@@ -19,6 +19,7 @@ from vlc import (
     State,
 )
 
+from log import log
 from utils import time_from_ms
 
 SEEK_INTERVAL = 5000
@@ -63,6 +64,8 @@ class Player:
         self.current_media: Media = self.current_media_player.get_media()
 
         self.playback_thread: Thread = Thread(target=self.play)
+
+        self.media_starting = False
 
         self.current_media_player.event_manager().event_attach(
             MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE, self.on_play_begin
@@ -225,6 +228,8 @@ class Player:
 
         state = self.current_media.get_state()
 
+        filename = Path(self.current_media.get_mrl()).name
+
         def reset() -> None:
             self.current_media.event_manager().event_detach(EventType(5))
             self.current_media_player = self.player.get_media_player()
@@ -233,21 +238,25 @@ class Player:
             STOP_EVENT.set()
             self.playback_thread.join()
 
-        print(state)
         if state == IDLE_STATE:
             self.current_media.event_manager().event_detach(EventType(5))
         elif state == PLAYING_STATE:  # State.PLAYING
-            print("Playback resumed")
+            if self.media_starting is True:
+                self.media_starting = False
+            else:
+                log(f"{filename} - Playing")
         elif state == PAUSED_STATE:  # State.PAUSED
-            print(f"Paused at {time_from_ms(self.current_media_player.get_time())}")
+            log(
+                f"{filename} - Paused at {time_from_ms(self.current_media_player.get_time())}"
+            )
         elif state == STOPPING_STATE:  # State.STOPPING
             reset()
-            print("Playback stopped")
+            log("Playback stopped")
         elif state == ENDED_STATE:
             if self.current_idx() == self.media_list.count() - 1:
                 if self.playback_mode == DEFAULT_PB_MODE:
                     reset()
-                    print("Playback ended")
+                    log("Playback ended")
 
     def on_play_begin(self, _: Event) -> None:
         """
@@ -261,8 +270,10 @@ class Player:
             MEDIA_STATE_CHANGED_EVENT_TYPE, self.on_media_state_change
         )
 
+        self.media_starting = True
+
         filename = Path(media.get_mrl()).name
-        print(f"Playing {filename}")
+        log(f"{filename} - Playing")
 
     # Utils
 

@@ -5,10 +5,10 @@ device input to control playback
 
 import os
 import sys
+import termios
+import tty
 from enum import Enum
 from pathlib import Path
-
-from evdev import InputDevice, InputEvent, ecodes
 
 from player import Player
 
@@ -54,16 +54,19 @@ class App:
             if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
         ]
         if len(media_list) == 0:
+            sys.stdout.write("\r\033[K")
             sys.exit("No media found. Exiting.")
 
         self.player.set_media_list(media_list)
         self.player.play_until_done()
 
-        device = InputDevice(self.input_device_path)
+        # device = InputDevice(self.input_device_path)
 
         while True:
-            for event in device.read_loop():
-                self.__handle_input(event)
+            key = self.getch()
+            sys.stdout.write("\r")
+            sys.stdout.flush()
+            self.__handle_input(key)
 
     def update(self, control: Control) -> None:
         """
@@ -95,24 +98,39 @@ class App:
             self.player.back()
 
         elif control == Control.QUIT:
-            sys.exit("Exiting.")
+            sys.stdout.write("\r\033[K")
+            sys.exit("Quitting.")
 
-    def __handle_input(self, event: InputEvent) -> None:
-        if event.type != ecodes.EV_KEY:
-            return
+    def getch(self):
+        """
+        Capture and return input
+        """
 
-        if event.value == 1:
-            if event.code == ecodes.KEY_SPACE:
-                self.update(Control.PLAY)
-            elif event.code == ecodes.KEY_ENTER:
-                self.update(Control.STOP)
-            elif event.code == ecodes.KEY_RIGHT:
-                self.update(Control.FFORWARD)
-            elif event.code == ecodes.KEY_LEFT:
-                self.update(Control.REWIND)
-            elif event.code == ecodes.KEY_N:
-                self.update(Control.NEXT)
-            elif event.code == ecodes.KEY_P:
-                self.update(Control.BACK)
-            elif event.code == ecodes.KEY_Q:
-                self.update(Control.QUIT)
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            first = sys.stdin.read(1)
+            if first == "\x1b":
+                rest = sys.stdin.read(2)
+                return first + rest
+
+            return first
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    def __handle_input(self, key: str) -> None:
+        if key == " ":
+            self.update(Control.PLAY)
+        elif key in ("\x7f", "\x08"):
+            self.update(Control.STOP)
+        elif key == "\x1b[C":
+            self.update(Control.FFORWARD)
+        elif key == "\x1b[D":
+            self.update(Control.REWIND)
+        elif key == "n":
+            self.update(Control.NEXT)
+        elif key == "p":
+            self.update(Control.BACK)
+        elif key == "q":
+            self.update(Control.QUIT)
