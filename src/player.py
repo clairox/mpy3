@@ -4,7 +4,6 @@ using vlc.MediaPlayer
 """
 
 import random
-import sys
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread

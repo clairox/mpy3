@@ -5,13 +5,11 @@ calling its `run()` method.
 """
 
 import argparse
-import sys
 from pathlib import Path
 
 from platformdirs import user_music_dir
 
 from app import App
-from utils import send_exit
 
 MPY3_DIR = "mpy3"
 
