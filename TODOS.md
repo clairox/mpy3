@@ -8,4 +8,5 @@
   - [x] Input device path
   - [x] Playback mode
   - [x] Media directory
-- [ ] Add shuffle
+- [x] Add shuffle
+- [ ] BUG send_exit() call on playback end messes with output formatting
