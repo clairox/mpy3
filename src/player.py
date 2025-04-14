@@ -16,6 +16,7 @@ from vlc import (
     MediaList,
     MediaListPlayer,
     MediaPlayer,
+    Meta,
     PlaybackMode,
     State,
 )
@@ -40,6 +41,11 @@ ENDED_STATE = State(6)
 DEFAULT_PB_MODE = PlaybackMode(0)
 LOOP_PB_MODE = PlaybackMode(1)
 REPEAT_PB_MODE = PlaybackMode(2)
+
+# vlc.Metas
+TITLE_META = Meta(0)
+ARTIST_META = Meta(1)
+ALBUM_META = Meta(4)
 
 
 class Player:
@@ -68,6 +74,8 @@ class Player:
         self.playback_thread: Thread = Thread(target=self.play)
 
         self.media_starting = False
+
+        self.display = ""
 
         self.current_media_player.event_manager().event_attach(
             MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE, self.on_play_begin
@@ -232,8 +240,6 @@ class Player:
 
         state = self.current_media.get_state()
 
-        filename = Path(self.current_media.get_mrl()).name
-
         def reset() -> None:
             self.current_media.event_manager().event_detach(EventType(5))
             self.current_media_player = self.player.get_media_player()
@@ -248,10 +254,10 @@ class Player:
             if self.media_starting is True:
                 self.media_starting = False
             else:
-                log(f"{filename} - Playing")
+                log(f"{self.display}")
         elif state == PAUSED_STATE:
             log(
-                f"{filename} - Paused at {time_from_ms(self.current_media_player.get_time())}"
+                f"{self.display} - Paused at {time_from_ms(self.current_media_player.get_time())}"
             )
         elif state == STOPPING_STATE:
             reset()
@@ -276,9 +282,10 @@ class Player:
 
         self.media_starting = True
 
-        # TODO get title, artist, album, etc. from metadata
-        filename = Path(media.get_mrl()).name
-        log(f"{filename} - Playing")
+        title = media.get_meta(TITLE_META)
+        artist = media.get_meta(ARTIST_META) or "Unknown"
+        self.display = f"{title} - {artist}"
+        log(self.display)
 
     # Utils
 

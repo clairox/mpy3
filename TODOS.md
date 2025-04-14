@@ -10,4 +10,4 @@
   - [x] Media directory
 - [x] Add shuffle
 - [x] BUG send_exit() call on playback end messes with output formatting
-- [ ] Read track info from .mp3 file metadata
+- [x] Read track info from .mp3 file metadata
