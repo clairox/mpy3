@@ -276,6 +276,7 @@ class Player:
 
         self.media_starting = True
 
+        # TODO get title, artist, album, etc. from metadata
         filename = Path(media.get_mrl()).name
         log(f"{filename} - Playing")
 
@@ -307,9 +308,7 @@ class Player:
         Queue up media file for playback
         """
 
-        l = []
-        if self.shuffle:
-            l = random.sample(mrls, len(mrls))
+        l = random.sample(mrls, len(mrls)) if self.shuffle else mrls
 
         self.media_list = MediaList(l)  # type: ignore
         self.player.set_media_list(self.media_list)
