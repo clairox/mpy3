@@ -3,7 +3,6 @@ Handles running the mp3 player application and processes physical
 device input to control playback
 """
 
-import os
 import sys
 from enum import Enum
 from pathlib import Path
@@ -45,11 +44,9 @@ class App:
         Runs the main application
         """
 
-        os.chdir(self.media_dir)
-
         media_list = [
             f
-            for f in sorted(Path.cwd().iterdir())
+            for f in sorted(Path(self.media_dir).iterdir())
             if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
         ]
         if len(media_list) == 0:

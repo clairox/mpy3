@@ -21,6 +21,7 @@ from vlc import (
     State,
 )
 
+import appstate
 from utils import log, send_exit, time_from_ms
 
 SEEK_INTERVAL = 5000
@@ -68,6 +69,7 @@ class Player:
 
         self.player.set_playback_mode(self.playback_mode)
 
+        self.start_idx = 0
         self.current_media_player: MediaPlayer = self.player.get_media_player()
         self.current_media: Media = self.current_media_player.get_media()
 
@@ -99,14 +101,14 @@ class Player:
 
         try:
             if self.is_stopped():
-                self.player.play_item_at_index(0)
+                self.player.play_item_at_index(self.start_idx)
             else:
                 self.player.play()
 
         except KeyboardInterrupt:
             pass
         except Exception as e:
-            print(f"Count not play media: {e}")
+            print(f"Could not play media: {e}")
 
     def pause(self) -> None:
         """
@@ -245,6 +247,10 @@ class Player:
             self.current_media_player = self.player.get_media_player()
             self.current_media = self.current_media_player.get_media()
 
+            m: Media = self.media_list.item_at_index(0)  # type: ignore
+            app_settings = {"last_played": m.get_mrl()}
+            appstate.save(app_settings)
+
             STOP_EVENT.set()
             self.playback_thread.join()
 
@@ -282,6 +288,9 @@ class Player:
 
         self.media_starting = True
 
+        app_settings = {"last_played": media.get_mrl()}
+        appstate.save(app_settings)
+
         title = media.get_meta(TITLE_META)
         artist = media.get_meta(ARTIST_META) or "Unknown"
         self.display = f"{title} - {artist}"
@@ -315,7 +324,17 @@ class Player:
         Queue up media file for playback
         """
 
+        state = appstate.load()
+        start = state["last_played"]
+
         l = random.sample(mrls, len(mrls)) if self.shuffle else mrls
+
+        if start in l:
+            if self.shuffle:
+                l = [start] + [p for p in l if p != start]
+                self.start_idx = 0
+            else:
+                self.start_idx = l.index(start)
 
         self.media_list = MediaList(l)  # type: ignore
         self.player.set_media_list(self.media_list)
