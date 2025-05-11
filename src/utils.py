@@ -13,8 +13,8 @@ def log(*values: object) -> None:
     Log and overwrite a single line to console
     """
 
-    sys.stdout.write("\r\033[2K")
-    sys.stdout.write(" ".join(str(v) for v in values))
+    # sys.stdout.write("\r\033[2K")
+    sys.stdout.write(f"\r\033[2K{" ".join(str(v) for v in values)}")
     sys.stdout.flush()
 
 
@@ -23,7 +23,7 @@ def send_exit(status) -> None:
     Exit app and log a status message to console
     """
 
-    sys.stdout.write(f"\n{status}")
+    sys.stdout.write(f"\r\033[2K{status}")
     sys.stdout.flush()
 
     # Force terminal reset, in case it has not already happened

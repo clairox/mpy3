@@ -175,7 +175,8 @@ class Player:
                 self.player.play_item_at_index(next_idx)
                 return
 
-            self.player.next()
+            self.set_current_track(self.current_idx + 1)
+            self.player.play_item_at_index(self.current_idx)
         except Exception as e:
             print(f"Could not play next track: {e}")
 
@@ -206,7 +207,8 @@ class Player:
                 self.player.play_item_at_index(previous_index)
                 return
 
-            self.player.previous()
+            self.set_current_track(self.current_idx - 1)
+            self.player.play_item_at_index(self.current_idx)
         except Exception as e:
             print(f"Could not play next track: {e}")
 
