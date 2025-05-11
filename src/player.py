@@ -22,6 +22,7 @@ from vlc import (
 )
 
 import appstate
+from appstate import AppState
 from utils import log, send_exit, time_from_ms
 
 SEEK_INTERVAL = 5000
@@ -70,6 +71,7 @@ class Player:
         self.player.set_playback_mode(self.playback_mode)
 
         self.start_idx = 0
+        self.current_idx = 0
         self.current_media_player: MediaPlayer = self.player.get_media_player()
         self.current_media: Media = self.current_media_player.get_media()
 
@@ -101,7 +103,7 @@ class Player:
 
         try:
             if self.is_stopped():
-                self.player.play_item_at_index(self.start_idx)
+                self.player.play_item_at_index(self.current_idx)
             else:
                 self.player.play()
 
@@ -159,10 +161,11 @@ class Player:
         """
 
         try:
-            if self.is_stopped():
+            if self.is_stopped() and self.current_idx < self.media_list.count() - 1:
+                self.set_current_track(self.current_idx + 1)
                 return
 
-            next_idx = self.current_idx() + 1
+            next_idx = self.current_idx + 1
             if next_idx >= self.media_list.count():
                 if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
                     self.stop()
@@ -184,7 +187,8 @@ class Player:
         """
 
         try:
-            if self.is_stopped():
+            if self.is_stopped() and self.current_idx > 0:
+                self.set_current_track(self.current_idx - 1)
                 return
 
             is_track_start = self.current_media_player.get_time() <= 3000
@@ -192,7 +196,7 @@ class Player:
                 self.current_media_player.set_time(0)
                 return
 
-            previous_index = self.current_idx() - 1
+            previous_index = self.current_idx - 1
             if previous_index < 0:
                 if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
                     self.player.play_item_at_index(0)
@@ -248,7 +252,7 @@ class Player:
             self.current_media = self.current_media_player.get_media()
 
             m: Media = self.media_list.item_at_index(0)  # type: ignore
-            app_settings = {"last_played": m.get_mrl()}
+            app_settings: AppState = {"last_played": m.get_mrl()}
             appstate.save(app_settings)
 
             STOP_EVENT.set()
@@ -269,7 +273,7 @@ class Player:
             reset()
             send_exit("Playback stopped.")
         elif state == ENDED_STATE:
-            if self.current_idx() == self.media_list.count() - 1:
+            if self.current_idx == self.media_list.count() - 1:
                 if self.playback_mode == DEFAULT_PB_MODE:
                     reset()
                     send_exit("Playback ended.")
@@ -288,7 +292,7 @@ class Player:
 
         self.media_starting = True
 
-        app_settings = {"last_played": media.get_mrl()}
+        app_settings: AppState = {"last_played": media.get_mrl()}
         appstate.save(app_settings)
 
         title = media.get_meta(TITLE_META)
@@ -298,12 +302,12 @@ class Player:
 
     # Utils
 
-    def current_idx(self) -> int:
-        """
-        Index of currently playing media in media list
-        """
-
-        return self.media_list.index_of_item(self.current_media)
+    # def current_idx(self) -> int:
+    #     """
+    #     Index of currently playing media in media list
+    #     """
+    #
+    #     return self.media_list.index_of_item(self.current_media)
 
     def is_playing(self) -> bool:
         """
@@ -319,13 +323,25 @@ class Player:
 
         return self.current_media_player.get_time() == -1
 
+    def set_current_track(self, idx: int) -> None:
+        media: Media = self.media_list.item_at_index(idx)  # type: ignore
+
+        self.current_idx = self.media_list.index_of_item(media)
+
+        media.parse()
+        title = media.get_meta(TITLE_META)
+        artist = media.get_meta(ARTIST_META) or "Unknown"
+        self.display = f"{title} - {artist} - Stopped"
+
+        log(self.display)
+
     def set_media_list(self, mrls: list[Path]) -> None:
         """
         Queue up media file for playback
         """
 
         state = appstate.load()
-        start = state["last_played"]
+        start = state.get("last_played")
 
         l = random.sample(mrls, len(mrls)) if self.shuffle else mrls
 
@@ -338,3 +354,5 @@ class Player:
 
         self.media_list = MediaList(l)  # type: ignore
         self.player.set_media_list(self.media_list)
+
+        self.set_current_track(self.start_idx)

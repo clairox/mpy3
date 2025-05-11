@@ -11,4 +11,4 @@
 - [x] Add shuffle
 - [x] BUG send_exit() call on playback end messes with output formatting
 - [x] Read track info from .mp3 file metadata
-- [ ] Switch to manual playback starting
+- [x] Switch to manual playback starting
