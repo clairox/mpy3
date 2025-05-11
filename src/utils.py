@@ -13,7 +13,6 @@ def log(*values: object) -> None:
     Log and overwrite a single line to console
     """
 
-    # sys.stdout.write("\r\033[2K")
     sys.stdout.write(f"\r\033[2K{" ".join(str(v) for v in values)}")
     sys.stdout.flush()
 

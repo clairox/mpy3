@@ -31,6 +31,7 @@ STOP_EVENT = ThreadEvent()
 # vlc.EventTypes
 MEDIA_STATE_CHANGED_EVENT_TYPE = EventType(5)
 MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE = EventType(0x100)
+MEDIA_PLAYER_TIME_CHANGED = EventType(267)
 
 # vlc.States
 IDLE_STATE = State(0)
@@ -83,6 +84,10 @@ class Player:
 
         self.current_media_player.event_manager().event_attach(
             MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE, self.on_play_begin
+        )
+
+        self.current_media_player.event_manager().event_attach(
+            MEDIA_PLAYER_TIME_CHANGED, self.on_time_changed
         )
 
     # Playback
@@ -266,11 +271,9 @@ class Player:
             if self.media_starting is True:
                 self.media_starting = False
             else:
-                log(f"{self.display}")
+                log(f"▶ Playing  |  {self.display}  |  {self.current_timestring()}")
         elif state == PAUSED_STATE:
-            log(
-                f"{self.display} - Paused at {time_from_ms(self.current_media_player.get_time())}"
-            )
+            log(f"⏸ Paused   |  {self.display}  |  {self.current_timestring()}")
         elif state == STOPPING_STATE:
             reset()
             send_exit("Playback stopped.")
@@ -300,16 +303,15 @@ class Player:
         title = media.get_meta(TITLE_META)
         artist = media.get_meta(ARTIST_META) or "Unknown"
         self.display = f"{title} - {artist}"
-        log(self.display)
+        log(
+            f"▶ Playing  |  {self.display}  |  0:00 / {time_from_ms(self.current_media.get_duration())}"
+        )
+
+    def on_time_changed(self, _: Event) -> None:
+        if self.current_media_player.get_time():
+            log(f"▶ Playing  |  {self.display}  |  {self.current_timestring()}")
 
     # Utils
-
-    # def current_idx(self) -> int:
-    #     """
-    #     Index of currently playing media in media list
-    #     """
-    #
-    #     return self.media_list.index_of_item(self.current_media)
 
     def is_playing(self) -> bool:
         """
@@ -325,6 +327,11 @@ class Player:
 
         return self.current_media_player.get_time() == -1
 
+    def current_timestring(self) -> str:
+        current_time = time_from_ms(self.current_media_player.get_time())
+        total_duration = time_from_ms(self.current_media.get_duration())
+        return f"{current_time} / {total_duration}"
+
     def set_current_track(self, idx: int) -> None:
         media: Media = self.media_list.item_at_index(idx)  # type: ignore
 
@@ -333,9 +340,14 @@ class Player:
         media.parse()
         title = media.get_meta(TITLE_META)
         artist = media.get_meta(ARTIST_META) or "Unknown"
-        self.display = f"{title} - {artist} - Stopped"
+        self.display = f"{title} - {artist}"
 
-        log(self.display)
+        if self.is_stopped():
+            log(f"⏹ Stopped  |  {self.display}")
+        elif self.player.is_playing():
+            log(f"▶ Playing  |  {self.display}  |  {self.current_timestring()}")
+        else:
+            log(f"⏸ Paused   |  {self.display}  |  {self.current_timestring()}")
 
     def set_media_list(self, mrls: list[Path]) -> None:
         """
