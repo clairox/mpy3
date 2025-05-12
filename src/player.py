@@ -6,6 +6,7 @@ using vlc.MediaPlayer
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
+from time import sleep
 from typing import Union
 
 from vlc import Media, MediaList, MediaListPlayer, MediaPlayer
@@ -14,6 +15,7 @@ import appstate
 from constants import ARTIST_META, MEDIA_STATE_CHANGED_EVENT_TYPE, TITLE_META
 from output import PlaybackState, PlaybackStatusDisplay
 from playback import PlaybackController
+from utils import log
 
 STOP_EVENT = ThreadEvent()
 
@@ -429,7 +431,9 @@ class PlaylistManager:
                 return
 
             if prev_idx < 0:
+                self.set_current_media(0)
                 self.pc.media_list_player.play_item_at_index(0)
+                return
 
             self.set_current_media(prev_idx)
             self.pc.media_list_player.play_item_at_index(prev_idx)
