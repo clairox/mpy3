@@ -16,9 +16,10 @@ class PlaybackStatusDisplay:
         self.position = -1
         self.total_duration = -1
 
+        self.set_attrs(**kwargs)
         self.update_status_string(**kwargs)
 
-    def update_status_string(self, **kwargs) -> None:
+    def set_attrs(self, **kwargs) -> None:
         if "state" in kwargs:
             self.state = kwargs["state"]
 
@@ -30,6 +31,9 @@ class PlaybackStatusDisplay:
 
         if "total_duration" in kwargs:
             self.total_duration = kwargs["total_duration"]
+
+    def update_status_string(self, **kwargs) -> None:
+        self.set_attrs(**kwargs)
 
         state_display = ""
         if self.state == PlaybackState.STOPPED:
@@ -44,3 +48,6 @@ class PlaybackStatusDisplay:
             status += f"  |  {create_timestring(self.position, self.total_duration)}"
 
         log(status)
+
+
+playback_status_display = PlaybackStatusDisplay()

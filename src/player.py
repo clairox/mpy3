@@ -6,16 +6,14 @@ using vlc.MediaPlayer
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
-from time import sleep
 from typing import Union
 
 from vlc import Media, MediaList, MediaListPlayer, MediaPlayer
 
 import appstate
 from constants import ARTIST_META, MEDIA_STATE_CHANGED_EVENT_TYPE, TITLE_META
-from output import PlaybackState, PlaybackStatusDisplay
+from output import PlaybackState, playback_status_display
 from playback import PlaybackController
-from utils import log
 
 STOP_EVENT = ThreadEvent()
 
@@ -43,7 +41,7 @@ class Player:
 
         # self.media_starting = False
 
-        self.status_display = PlaybackStatusDisplay(
+        playback_status_display.update_status_string(
             state=PlaybackState.STOPPED, media_label=self.pm.media_label
         )
 
@@ -356,7 +354,7 @@ class Player:
 
     def set_playlist(self, mrls: list[Path]) -> None:
         self.pm.set_playlist(mrls, self.player)
-        self.status_display.update_status_string(media_label=self.pm.media_label)
+        playback_status_display.update_status_string(media_label=self.pm.media_label)
 
     def toggle_playback_mode(self) -> None:
         self.pc.toggle_playback_mode()
@@ -402,6 +400,18 @@ class PlaylistManager:
             if self.pc.is_stopped():
                 if next_idx < playlist_length:
                     self.set_current_media(next_idx)
+                    media = self.current_media
+                    if media is None:
+                        return
+
+                    app_settings: appstate.AppState = {"last_played": media.get_mrl()}
+                    appstate.save(app_settings)
+
+                    playback_status_display.update_status_string(
+                        media_label=self.media_label,
+                        position=0,
+                        total_duration=media.get_duration(),
+                    )
                     return
                 return
 
@@ -422,6 +432,18 @@ class PlaylistManager:
             if self.pc.is_stopped():
                 if prev_idx >= 0:
                     self.set_current_media(prev_idx)
+                    media = self.current_media
+                    if media is None:
+                        return
+
+                    app_settings: appstate.AppState = {"last_played": media.get_mrl()}
+                    appstate.save(app_settings)
+
+                    playback_status_display.update_status_string(
+                        media_label=self.media_label,
+                        position=0,
+                        total_duration=media.get_duration(),
+                    )
                     return
                 return
 

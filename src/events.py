@@ -1,5 +1,7 @@
 from vlc import Event as VLCEvent
 
+import appstate
+from appstate import AppState
 from constants import (
     DEFAULT_PB_MODE,
     ENDED_STATE,
@@ -11,7 +13,7 @@ from constants import (
     PLAYING_STATE,
     STOPPING_STATE,
 )
-from output import PlaybackState
+from output import PlaybackState, playback_status_display
 from player import Player
 from utils import send_exit
 
@@ -21,7 +23,6 @@ class PlayerEventHandler:
         self.media_player = player.current_media_player
         self.pm = player.pm
         self.pc = player.pc
-        self.status_display = player.status_display
         self.reset = player.reset
 
         self.media_player.event_manager().event_attach(
@@ -36,6 +37,9 @@ class PlayerEventHandler:
         if media is None:
             return
 
+        app_settings: AppState = {"last_played": media.get_mrl()}
+        appstate.save(app_settings)
+
         media.event_manager().event_attach(
             MEDIA_STATE_CHANGED_EVENT_TYPE, self.on_media_state_changed
         )
@@ -46,7 +50,7 @@ class PlayerEventHandler:
             return
 
         if self.media_player.get_time():
-            self.status_display.update_status_string(
+            playback_status_display.update_status_string(
                 position=self.media_player.get_time(),
                 total_duration=media.get_duration(),
             )
@@ -62,7 +66,7 @@ class PlayerEventHandler:
             media.event_manager().event_detach(MEDIA_STATE_CHANGED_EVENT_TYPE)
 
         elif state == PLAYING_STATE:
-            self.status_display.update_status_string(
+            playback_status_display.update_status_string(
                 state=PlaybackState.PLAYING,
                 media_label=self.pm.media_label,
                 position=self.media_player.get_time(),
@@ -70,7 +74,7 @@ class PlayerEventHandler:
             )
 
         elif state == PAUSED_STATE:
-            self.status_display.update_status_string(
+            playback_status_display.update_status_string(
                 state=PlaybackState.PAUSED,
                 position=self.media_player.get_time(),
             )
