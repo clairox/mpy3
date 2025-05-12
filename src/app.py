@@ -52,8 +52,7 @@ class App:
         if len(media_list) == 0:
             send_exit("No media found. Exiting.")
 
-        self.player.set_media_list(media_list)
-        # self.player.play_until_done()
+        self.player.set_playlist(media_list)
 
         while True:
             key = getch()

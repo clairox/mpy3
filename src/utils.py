@@ -55,3 +55,9 @@ def time_from_ms(ms: int) -> str:
         return f"{hours}:{minutes:02}:{seconds:02}"
 
     return f"{minutes}:{seconds:02}"
+
+
+def create_timestring(position: int, total_duration: int) -> str:
+    position_str = time_from_ms(position) if position >= 0 else "--:--"
+    total_duration_str = time_from_ms(total_duration) if position >= 0 else "--:--"
+    return f"{position_str} / {total_duration_str}"
