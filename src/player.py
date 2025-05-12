@@ -167,6 +167,9 @@ class Player:
         try:
             if self.is_stopped() and current_idx < media_list_count - 1:
                 self.pm.set_current_media(current_idx + 1)
+                self.status_display.update_status_string(
+                    media_label=self.pm.media_label
+                )
                 return
 
             next_idx = current_idx + 1
@@ -196,6 +199,9 @@ class Player:
         try:
             if self.is_stopped() and current_idx > 0:
                 self.pm.set_current_media(current_idx - 1)
+                self.status_display.update_status_string(
+                    media_label=self.pm.media_label
+                )
                 return
 
             is_track_start = self.current_media_player.get_time() <= 3000
