@@ -68,26 +68,28 @@ class App:
             control (Control): Executed input control
         """
 
+        pc = self.player.pc
+
         if control == Control.PLAY:
-            if self.player.is_playing():
-                self.player.pause()
+            if pc.is_playing():
+                pc.pause()
             else:
-                self.player.play_until_done()
+                pc.play_until_done()
 
         elif control == Control.STOP:
-            self.player.stop()
+            pc.stop()
 
         elif control == Control.FFORWARD:
-            self.player.fast_forward()
+            pc.fast_forward()
 
         elif control == Control.REWIND:
-            self.player.rewind()
+            pc.rewind()
 
         elif control == Control.NEXT:
-            self.player.next()
+            pc.next()
 
         elif control == Control.BACK:
-            self.player.back()
+            pc.back()
 
         elif control == Control.QUIT:
             send_exit("Quitting.")

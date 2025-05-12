@@ -4,9 +4,6 @@ using vlc.MediaPlayer
 """
 
 from pathlib import Path
-from threading import Event as ThreadEvent
-from threading import Thread
-from time import sleep
 
 from vlc import (
     Event,
@@ -22,11 +19,9 @@ from vlc import (
 import appstate
 from appstate import AppState
 from output import PlaybackState, PlaybackStatusDisplay
+from playback import PlaybackController
 from playlist import PlaylistManager
-from utils import send_exit
-
-SEEK_INTERVAL = 5000
-STOP_EVENT = ThreadEvent()
+from utils import log, send_exit
 
 # vlc.EventTypes
 MEDIA_STATE_CHANGED_EVENT_TYPE = EventType(5)
@@ -58,6 +53,7 @@ class Player:
     def __init__(self, mode: str):
         self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
         self.pm = PlaylistManager()
+        self.pc = PlaybackController(self.player, self.pm)
 
         if mode == "loop":
             self.playback_mode = LOOP_PB_MODE
@@ -69,8 +65,6 @@ class Player:
         self.player.set_playback_mode(self.playback_mode)
 
         self.current_media_player: MediaPlayer = self.player.get_media_player()
-
-        self.playback_thread: Thread = Thread(target=self.play)
 
         self.media_starting = False
 
@@ -88,171 +82,173 @@ class Player:
 
     # Playback
 
-    def play_until_done(self) -> None:
-        """
-        Starts media playback thread
-        """
-
-        self.playback_thread = Thread(target=self.play)
-        self.playback_thread.daemon = True
-        self.playback_thread.start()
-
-    def play(self) -> None:
-        """
-        Start media playback of queued media
-        """
-
-        try:
-            if self.is_stopped():
-                self.player.play_item_at_index(self.pm.current_idx)
-            else:
-                self.player.play()
-
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            print(f"Could not play media: {e}")
-
-    def pause(self) -> None:
-        """
-        Pauses media playback if media is playing
-        """
-
-        try:
-            self.player.pause()
-
-        except Exception as e:
-            print(f"Could not pause media: {e}")
-
-    def stop(self) -> None:
-        """
-        Stop media playback and clear the queue
-        """
-
-        try:
-            self.current_media_player.stop()
-        except Exception as e:
-            print(f"Could not stop media: {e}")
-
-    def fast_forward(self) -> None:
-        """
-        Fast forwards media playback by predefined seek interval
-        """
-
-        try:
-            time = self.current_media_player.get_time() + SEEK_INTERVAL
-            self.seek(time)
-        except Exception as e:
-            print(f"Could not fast forward: {e}")
-
-    def rewind(self) -> None:
-        """
-        Rewinds media playback by predefined seek interval
-        """
-
-        try:
-            time = self.current_media_player.get_time() - SEEK_INTERVAL
-            self.seek(time)
-        except Exception as e:
-            print(f"Could not rewind: {e}")
-
-    def next(self) -> None:
-        """
-        Skips to next item in media list
-        """
-
-        media_list_count = self.pm.media_list.count()
-        current_idx = self.pm.current_idx
-
-        try:
-            if self.is_stopped() and current_idx < media_list_count - 1:
-                self.pm.set_current_media(current_idx + 1)
-                self.status_display.update_status_string(
-                    media_label=self.pm.media_label
-                )
-                return
-
-            next_idx = current_idx + 1
-            if next_idx >= media_list_count:
-                if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
-                    self.stop()
-                    return
-
-            if self.playback_mode == REPEAT_PB_MODE:
-                self.player.play_item_at_index(next_idx)
-                return
-
-            self.pm.set_current_media(current_idx + 1)
-            self.player.play_item_at_index(self.pm.current_idx)
-        except Exception as e:
-            print(f"Could not play next track: {e}")
-
-    def back(self) -> None:
-        """
-        Skips to previous item in media list or go back to media start
-
-        Sets time to 0 if past 3 seconds into media
-        """
-
-        current_idx = self.pm.current_idx
-
-        try:
-            if self.is_stopped() and current_idx > 0:
-                self.pm.set_current_media(current_idx - 1)
-                self.status_display.update_status_string(
-                    media_label=self.pm.media_label
-                )
-                return
-
-            is_track_start = self.current_media_player.get_time() <= 3000
-            if not is_track_start:
-                self.current_media_player.set_time(0)
-                return
-
-            previous_index = current_idx - 1
-            if previous_index < 0:
-                if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
-                    self.player.play_item_at_index(0)
-                    return
-
-            if self.playback_mode == REPEAT_PB_MODE:
-                self.player.play_item_at_index(previous_index)
-                return
-
-            self.pm.set_current_media(current_idx - 1)
-            self.player.play_item_at_index(self.pm.current_idx)
-        except Exception as e:
-            print(f"Could not play next track: {e}")
-
-    def seek(self, t: int) -> None:
-        """
-        Seeks to the specified time in the media file.
-
-        If the specified time is beyond the track length, the
-        media is stopped. If the time is less than or equal to
-        0, the media starts from the beginning. Otherwise, the
-        media is paused after seeking to the specified time.
-
-        Args:
-            t (int): The time to seek to, in milliseconds.
-        """
-
-        if self.pm.current_media is None:
-            return
-
-        duration = self.pm.current_media.get_duration()
-        if t > duration:
-            self.current_media_player.set_time(duration)
-        elif t <= 0:
-            self.current_media_player.set_time(0)
-        else:
-            if not self.player.is_playing():
-                self.player.play()
-                sleep(0.01)
-                self.current_media_player.set_time(t)
-                self.player.pause()
-            else:
-                self.current_media_player.set_time(t)
+    # def play_until_done(self) -> None:
+    #     """
+    #     Starts media playback thread
+    #     """
+    #
+    #     self.playback_thread = Thread(target=self.pc.play)
+    #     self.playback_thread.daemon = True
+    #     self.playback_thread.start()
+    #
+    # def play(self) -> None:
+    #     """
+    #     Start media playback of queued media
+    #     """
+    #
+    #     try:
+    #         if self.is_stopped():
+    #             self.player.play_item_at_index(self.pm.current_idx)
+    #         else:
+    #             self.player.play()
+    #
+    #     except KeyboardInterrupt:
+    #         pass
+    #     except Exception as e:
+    #         print(f"Could not play media: {e}")
+    #
+    # def pause(self) -> None:
+    #     """
+    #     Pauses media playback if media is playing
+    #     """
+    #
+    #     try:
+    #         self.player.pause()
+    #
+    #     except Exception as e:
+    #         print(f"Could not pause media: {e}")
+    #
+    # def stop(self) -> None:
+    #     """
+    #     Stop media playback and clear the queue
+    #     """
+    #
+    #     try:
+    #         self.current_media_player.stop()
+    #     except Exception as e:
+    #         print(f"Could not stop media: {e}")
+    #
+    # def fast_forward(self) -> None:
+    #     """
+    #     Fast forwards media playback by predefined seek interval
+    #     """
+    #
+    #     try:
+    #         time = self.current_media_player.get_time() + SEEK_INTERVAL
+    #         self.seek(time)
+    #     except Exception as e:
+    #         print(f"Could not fast forward: {e}")
+    #
+    # def rewind(self) -> None:
+    #     """
+    #     Rewinds media playback by predefined seek interval
+    #     """
+    #
+    #     try:
+    #         time = self.current_media_player.get_time() - SEEK_INTERVAL
+    #         self.seek(time)
+    #     except Exception as e:
+    #         print(f"Could not rewind: {e}")
+    #
+    # def next(self) -> None:
+    #     """
+    #     Skips to next item in media list
+    #     """
+    #
+    #     media_list_count = self.pm.media_list.count()
+    #     current_idx = self.pm.current_idx
+    #
+    #     try:
+    #         if self.is_stopped() and current_idx < media_list_count - 1:
+    #             self.pm.set_current_media(current_idx + 1)
+    #             self.status_display.update_status_string(
+    #                 media_label=self.pm.media_label
+    #             )
+    #             return
+    #
+    #         next_idx = current_idx + 1
+    #         if next_idx >= media_list_count:
+    #             if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
+    #                 self.stop()
+    #                 return
+    #
+    #         if self.playback_mode == REPEAT_PB_MODE:
+    #             self.player.play_item_at_index(next_idx)
+    #             return
+    #
+    #         self.pm.set_current_media(current_idx + 1)
+    #         self.player.play_item_at_index(self.pm.current_idx)
+    #     except Exception as e:
+    #         print(f"Could not play next track: {e}")
+    #
+    # def back(self) -> None:
+    #     """
+    #     Skips to previous item in media list or go back to media start
+    #
+    #     Sets time to 0 if past 3 seconds into media
+    #     """
+    #
+    #     current_idx = self.pm.current_idx
+    #
+    #     try:
+    #         if self.is_stopped() and current_idx > 0:
+    #             self.pm.set_current_media(current_idx - 1)
+    #             self.status_display.update_status_string(
+    #                 media_label=self.pm.media_label
+    #             )
+    #             return
+    #         elif current_idx == 0:
+    #             return
+    #
+    #         is_track_start = self.current_media_player.get_time() <= 3000
+    #         if not is_track_start:
+    #             self.current_media_player.set_time(0)
+    #             return
+    #
+    #         previous_index = current_idx - 1
+    #         if previous_index < 0:
+    #             if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
+    #                 self.player.play_item_at_index(0)
+    #                 return
+    #
+    #         if self.playback_mode == REPEAT_PB_MODE:
+    #             self.player.play_item_at_index(previous_index)
+    #             return
+    #
+    #         self.pm.set_current_media(current_idx - 1)
+    #         self.player.play_item_at_index(self.pm.current_idx)
+    #     except Exception as e:
+    #         print(f"Could not play next track: {e}")
+    #
+    # def seek(self, t: int) -> None:
+    #     """
+    #     Seeks to the specified time in the media file.
+    #
+    #     If the specified time is beyond the track length, the
+    #     media is stopped. If the time is less than or equal to
+    #     0, the media starts from the beginning. Otherwise, the
+    #     media is paused after seeking to the specified time.
+    #
+    #     Args:
+    #         t (int): The time to seek to, in milliseconds.
+    #     """
+    #
+    #     if self.pm.current_media is None:
+    #         return
+    #
+    #     duration = self.pm.current_media.get_duration()
+    #     if t > duration:
+    #         self.current_media_player.set_time(duration)
+    #     elif t <= 0:
+    #         self.current_media_player.set_time(0)
+    #     else:
+    #         if not self.player.is_playing():
+    #             self.player.play()
+    #             sleep(0.01)
+    #             self.current_media_player.set_time(t)
+    #             self.player.pause()
+    #         else:
+    #             self.current_media_player.set_time(t)
 
     # Callbacks
 
@@ -277,8 +273,7 @@ class Player:
             app_settings: AppState = {"last_played": m.get_mrl()}
             appstate.save(app_settings)
 
-            STOP_EVENT.set()
-            self.playback_thread.join()
+            self.pc.close_thread()
 
         if state == IDLE_STATE:
             self.pm.current_media.event_manager().event_detach(EventType(5))
@@ -342,20 +337,6 @@ class Player:
             )
 
     # Utils
-
-    def is_playing(self) -> bool:
-        """
-        Returns True if media is being played, False otherwise
-        """
-
-        return bool(self.player.is_playing())
-
-    def is_stopped(self) -> bool:
-        """
-        Returns True if media player is stopped, False otherwise
-        """
-
-        return self.current_media_player.get_time() == -1
 
     def set_playlist(self, mrls: list[Path]) -> None:
         self.pm.set_playlist(mrls, self.player)
