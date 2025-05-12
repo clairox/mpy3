@@ -33,15 +33,26 @@ class PlayerEventHandler:
         )
 
     def on_play_begin(self, _: VLCEvent) -> None:
+        self.pm.set_current_media(
+            self.pm.media_list.index_of_item(self.pc.media_player.get_media())
+        )
+
         media = self.pm.current_media
         if media is None:
             return
 
+        media.event_manager().event_attach(
+            MEDIA_STATE_CHANGED_EVENT_TYPE, self.on_media_state_changed
+        )
+
         app_settings: AppState = {"last_played": media.get_mrl()}
         appstate.save(app_settings)
 
-        media.event_manager().event_attach(
-            MEDIA_STATE_CHANGED_EVENT_TYPE, self.on_media_state_changed
+        playback_status_display.update_status_string(
+            state=PlaybackState.PLAYING,
+            media_label=self.pm.media_label,
+            position=0,
+            total_duration=media.get_duration(),
         )
 
     def on_media_player_time_changed(self, _: VLCEvent) -> None:

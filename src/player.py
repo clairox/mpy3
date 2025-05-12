@@ -39,20 +39,11 @@ class Player:
 
         self.current_media_player: MediaPlayer = self.player.get_media_player()
 
-        # self.media_starting = False
+        self.playback_thread: Thread = Thread(target=self.play)
 
         playback_status_display.update_status_string(
             state=PlaybackState.STOPPED, media_label=self.pm.media_label
         )
-
-        # self.current_media_player.event_manager().event_attach(
-        #     MEDIA_PLAYER_MEDIA_CHANGED_EVENT_TYPE, self.on_play_begin
-        # )
-        #
-        # self.current_media_player.event_manager().event_attach(
-        #     MEDIA_PLAYER_TIME_CHANGED, self.on_time_changed
-        # )
-        self.playback_thread: Thread = Thread(target=self.play)
 
     def play_until_done(self) -> None:
         """
