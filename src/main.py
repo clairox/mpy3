@@ -21,16 +21,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d", "--dir", type=Path, help="Path to directory containing media files"
     )
-    parser.add_argument(
-        "-m",
-        "--mode",
-        choices=["default", "loop", "repeat"],
-        default="default",
-        help="Playback mode: default, loop playlist, repeat current track",
-    )
-    parser.add_argument(
-        "-s", "--shuffle", action="store_true", help="Shuffle playback order"
-    )
 
     args = parser.parse_args()
 
@@ -41,8 +31,5 @@ if __name__ == "__main__":
         media_dir = Path(args.dir)
     media_dir.mkdir(parents=True, exist_ok=True)
 
-    playback_mode = args.mode
-    shuffle = args.shuffle
-
-    app = App(media_dir, playback_mode, shuffle)
+    app = App(media_dir)
     app.run()

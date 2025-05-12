@@ -1,44 +1,16 @@
-from threading import Event as ThreadEvent
-from threading import Thread
 from time import sleep
 
 from vlc import MediaListPlayer, MediaPlayer
 
-from constants import SEEK_INTERVAL
-from playlist import PlaylistManager
-
-STOP_EVENT = ThreadEvent()
+from constants import DEFAULT_PB_MODE, SEEK_INTERVAL
 
 
 class PlaybackController:
-    def __init__(
-        self, media_list_player: MediaListPlayer, playlist_manager: PlaylistManager
-    ) -> None:
+    def __init__(self, media_list_player: MediaListPlayer) -> None:
         self.media_list_player = media_list_player
         self.media_player: MediaPlayer = media_list_player.get_media_player()  # type: ignore
-        self.pm = playlist_manager
 
-        self.playback_thread: Thread = Thread(target=self.play)
-
-    def play_until_done(self) -> None:
-        """
-        Starts media playback thread
-        """
-
-        self.playback_thread = Thread(target=self.play)
-        self.playback_thread.daemon = True
-        self.playback_thread.start()
-
-    def play(self) -> None:
-        try:
-            if self.is_stopped():
-                self.media_list_player.play_item_at_index(self.pm.current_idx)
-            else:
-                self.media_list_player.play()
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            print(f"Could not play media: {e}")
+        self.playback_mode = DEFAULT_PB_MODE
 
     def pause(self) -> None:
         try:
@@ -51,53 +23,6 @@ class PlaybackController:
             self.media_player.stop()
         except Exception as e:
             print(f"Could not stop media: {e}")
-
-    def next(self) -> None:
-        playlist_length = self.pm.media_list.count()
-        current_idx = self.pm.current_idx
-
-        try:
-            next_idx = current_idx + 1
-
-            if self.is_stopped():
-                if next_idx < playlist_length:
-                    self.pm.set_current_media(next_idx)
-                    return
-                return
-
-            if next_idx >= playlist_length:
-                self.stop()
-                return
-
-            self.pm.set_current_media(next_idx)
-            self.media_list_player.play_item_at_index(next_idx)
-
-        except Exception as e:
-            print(f"Could not play next track: {e}")
-
-    def back(self) -> None:
-        current_idx = self.pm.current_idx
-        try:
-            prev_idx = current_idx - 1
-
-            if self.is_stopped():
-                if prev_idx >= 0:
-                    self.pm.set_current_media(prev_idx)
-                    return
-                return
-
-            is_track_start = self.media_player.get_time() <= 3000
-            if not is_track_start:
-                self.media_player.set_time(0)
-                return
-
-            if prev_idx < 0:
-                self.media_list_player.play_item_at_index(0)
-
-            self.pm.set_current_media(prev_idx)
-            self.media_list_player.play_item_at_index(prev_idx)
-        except Exception as e:
-            print(f"Could not play next track: {e}")
 
     def fast_forward(self) -> None:
         try:
@@ -114,9 +39,8 @@ class PlaybackController:
             print(f"Could not fast forward: {e}")
 
     def seek(self, position: int) -> None:
-        media = self.pm.current_media
-        if media is None:
-            return
+        media = self.media_player.get_media()
+        media.parse()
 
         duration = media.get_duration()
         if position >= duration:
@@ -137,9 +61,8 @@ class PlaybackController:
         else:
             self.media_player.set_time(position)
 
-    def close_thread(self) -> None:
-        STOP_EVENT.set()
-        self.playback_thread.join()
+    def toggle_playback_mode(self) -> None:
+        pass
 
     def is_playing(self) -> bool:
         return self.media_list_player.is_playing()

@@ -7,6 +7,7 @@ import sys
 from enum import Enum
 from pathlib import Path
 
+from events import PlayerEventHandler
 from player import Player
 from terminalio import getch
 from utils import send_exit
@@ -35,9 +36,10 @@ class App:
     Main application which manages media playback and handles input controls
     """
 
-    def __init__(self, media_dir: Path, mode: str, shuffle: bool) -> None:
+    def __init__(self, media_dir: Path) -> None:
         self.media_dir = media_dir
-        self.player: Player = Player(mode=mode)  # type: ignore
+        self.player = Player()
+        self.event_handler = PlayerEventHandler(self.player)
 
     def run(self) -> None:
         """
@@ -69,12 +71,13 @@ class App:
         """
 
         pc = self.player.pc
+        pm = self.player.pm
 
         if control == Control.PLAY:
             if pc.is_playing():
                 pc.pause()
             else:
-                pc.play_until_done()
+                self.player.play_until_done()
 
         elif control == Control.STOP:
             pc.stop()
@@ -86,10 +89,10 @@ class App:
             pc.rewind()
 
         elif control == Control.NEXT:
-            pc.next()
+            pm.next()
 
         elif control == Control.BACK:
-            pc.back()
+            pm.back()
 
         elif control == Control.QUIT:
             send_exit("Quitting.")
