@@ -37,7 +37,7 @@ class App:
 
     def __init__(self, media_dir: Path, mode: str, shuffle: bool) -> None:
         self.media_dir = media_dir
-        self.player: Player = Player(mode=mode, shuffle=shuffle)  # type: ignore
+        self.player: Player = Player(mode=mode)  # type: ignore
 
     def run(self) -> None:
         """
