@@ -29,6 +29,8 @@ class Control(Enum):
     BACK = 5
     QUIT = 6
     STOP = 7
+    TOGGLE_MODE = 8
+    TOGGLE_SHUFFLE = 9
 
 
 class App:
@@ -37,24 +39,13 @@ class App:
     """
 
     def __init__(self, media_dir: Path) -> None:
-        self.media_dir = media_dir
-        self.player = Player()
+        self.player = Player(media_dir)
         self.event_handler = PlayerEventHandler(self.player)
 
     def run(self) -> None:
         """
         Runs the main application
         """
-
-        media_list = [
-            f
-            for f in sorted(Path(self.media_dir).iterdir())
-            if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
-        ]
-        if len(media_list) == 0:
-            send_exit("No media found. Exiting.")
-
-        self.player.set_playlist(media_list)
 
         while True:
             key = getch()
@@ -97,6 +88,12 @@ class App:
         elif control == Control.QUIT:
             send_exit("Quitting.")
 
+        elif control == Control.TOGGLE_MODE:
+            pm.toggle_playback_mode()
+
+        elif control == Control.TOGGLE_SHUFFLE:
+            pm.toggle_shuffle()
+
     def __handle_input(self, key: str) -> None:
         if key == " ":
             self.update(Control.PLAY)
@@ -112,3 +109,7 @@ class App:
             self.update(Control.BACK)
         elif key == "q":
             self.update(Control.QUIT)
+        elif key == "m":
+            self.update(Control.TOGGLE_MODE)
+        elif key == "s":
+            self.update(Control.TOGGLE_SHUFFLE)

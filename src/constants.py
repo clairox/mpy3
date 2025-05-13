@@ -1,6 +1,7 @@
 from vlc import EventType, Meta, PlaybackMode, State
 
 SEEK_INTERVAL = 5000
+ALLOWED_FILE_TYPES = [".mp3"]
 
 # vlc.EventTypes
 MEDIA_STATE_CHANGED_EVENT_TYPE = EventType(5)

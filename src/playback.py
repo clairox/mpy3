@@ -61,9 +61,6 @@ class PlaybackController:
         else:
             self.media_player.set_time(position)
 
-    def toggle_playback_mode(self) -> None:
-        pass
-
     def is_playing(self) -> bool:
         return self.media_list_player.is_playing()
 

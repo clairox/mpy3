@@ -4,6 +4,8 @@ Utility functions
 
 import os
 import sys
+from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from terminalio import reset_terminal
 
@@ -61,3 +63,7 @@ def create_timestring(position: int, total_duration: int) -> str:
     position_str = time_from_ms(position) if position >= 0 else "--:--"
     total_duration_str = time_from_ms(total_duration) if position >= 0 else "--:--"
     return f"{position_str} / {total_duration_str}"
+
+
+def extract_path(url: Path) -> Path:
+    return Path(unquote(urlparse(str(url)).path))

@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import NotRequired, TypedDict
 from urllib.parse import unquote, urlparse
 
+from utils import extract_path
+
 SETTINGS_PATH = "settings.json"
 
 
@@ -14,7 +16,7 @@ def load() -> AppState:
     try:
         with open(SETTINGS_PATH, "r", encoding="utf-8") as infile:
             app_settings = json.load(infile)
-            last_played = Path(unquote(urlparse(app_settings["last_played"]).path))
+            last_played = extract_path(Path(app_settings["last_played"]))
             return {"last_played": last_played}
     except FileNotFoundError:
         return {}

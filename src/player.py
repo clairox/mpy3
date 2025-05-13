@@ -3,17 +3,26 @@ This module contains the `Player` class which handles media playback
 using vlc.MediaPlayer
 """
 
+import random
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
+from time import sleep
 from typing import Union
 
 from vlc import Media, MediaList, MediaListPlayer, MediaPlayer
 
 import appstate
-from constants import ARTIST_META, MEDIA_STATE_CHANGED_EVENT_TYPE, TITLE_META
+from constants import (
+    ALLOWED_FILE_TYPES,
+    ARTIST_META,
+    DEFAULT_PB_MODE,
+    MEDIA_STATE_CHANGED_EVENT_TYPE,
+    TITLE_META,
+)
 from output import PlaybackState, playback_status_display
 from playback import PlaybackController
+from utils import extract_path, log, send_exit
 
 STOP_EVENT = ThreadEvent()
 
@@ -23,10 +32,10 @@ class Player:
     Handles vlc.MediaListPlayer playback
     """
 
-    def __init__(self):
+    def __init__(self, media_dir: Path):
         self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
         self.pc = PlaybackController(self.player)
-        self.pm = PlaylistManager(self.pc)
+        self.pm = PlaylistManager(self.pc, media_dir)
 
         # if mode == "loop":
         #     self.playback_mode = LOOP_PB_MODE
@@ -345,10 +354,9 @@ class Player:
 
     def set_playlist(self, mrls: list[Path]) -> None:
         self.pm.set_playlist(mrls, self.player)
-        playback_status_display.update_status_string(media_label=self.pm.media_label)
 
     def toggle_playback_mode(self) -> None:
-        self.pc.toggle_playback_mode()
+        self.pm.toggle_playback_mode()
 
     # def set_media_list(self, mrls: list[Path]) -> None:
     #     """
@@ -374,13 +382,31 @@ class Player:
 
 
 class PlaylistManager:
-    def __init__(self, pc: PlaybackController) -> None:
+    def __init__(self, pc: PlaybackController, media_dir: Path) -> None:
         self.current_idx = -1
         self.current_media: Union[Media, None] = None
         self.media_list: MediaList = MediaList()  # type: ignore
         self.pc = pc
 
         self.media_label = "No track selected"
+
+        self.playback_mode = DEFAULT_PB_MODE
+        self.shuffle = False
+
+        self.mrls = [
+            f
+            for f in sorted(Path(media_dir).iterdir())
+            if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
+        ]
+        if len(self.mrls) == 0:
+            send_exit("No media found. Exiting.")
+
+        state = appstate.load()
+        start_mrl = state.get("last_played")
+        if start_mrl in self.mrls:
+            self.current_idx = self.mrls.index(start_mrl)
+
+        self.set_playlist(self.mrls, self.pc.media_list_player)
 
     def next(self) -> None:
         playlist_length = self.media_list.count()
@@ -454,15 +480,11 @@ class PlaylistManager:
             print(f"Could not play next track: {e}")
 
     def set_playlist(self, mrls: list[Path], player: MediaListPlayer) -> None:
-        state = appstate.load()
-        start_mrl = state.get("last_played")
-        if start_mrl in mrls:
-            self.current_idx = mrls.index(start_mrl)
-
         self.media_list: MediaList = MediaList(mrls)  # type: ignore
         player.set_media_list(self.media_list)
 
         self.set_current_media(self.current_idx)
+        playback_status_display.update_status_string(media_label=self.media_label)
 
     def set_current_media(self, idx: int) -> None:
         media = self.media_list.item_at_index(idx)
@@ -475,5 +497,32 @@ class PlaylistManager:
         artist = media.get_meta(ARTIST_META) or "Unknown"
         self.media_label = f"{title} - {artist}"
 
-    # def toggle_shuffle(self, value: bool) -> None:
-    #     pass
+    def toggle_playback_mode(self) -> None:
+        pass
+
+    def toggle_shuffle(self) -> None:
+        if self.shuffle:
+            if self.current_media is None:
+                return
+
+            self.current_idx = self.mrls.index(
+                extract_path(Path(self.current_media.get_mrl()))
+            )
+            self.set_playlist(self.mrls, self.pc.media_list_player)
+            self.shuffle = False
+
+        elif not self.shuffle:
+            population = [
+                f for f in self.mrls if self.mrls.index(f) != self.current_idx
+            ]
+            shuffled_mrls = random.sample(
+                population,
+                len(population),
+            )
+            shuffled_mrls.insert(0, self.mrls[self.current_idx])
+            self.current_idx = 0
+            self.set_playlist(shuffled_mrls, self.pc.media_list_player)
+
+            self.shuffle = True
+
+        playback_status_display.update_status_string(shuffle=self.shuffle)
