@@ -1,3 +1,7 @@
+"""
+This module contains important constant values
+"""
+
 from vlc import EventType, Meta, PlaybackMode, State
 
 SEEK_INTERVAL = 5000

@@ -1,3 +1,8 @@
+"""
+This module contains the `MediaPlaybackController` class which handles
+playback of a single media file
+"""
+
 from threading import Event as ThreadEvent
 from threading import Thread
 from time import sleep
@@ -63,22 +68,16 @@ class MediaPlaybackController:
         Fast forward media player playback.
         """
 
-        try:
-            time = self._media_player.get_time() + TIME_SKIP
-            self._seek(time)
-        except Exception as e:
-            print(f"Could not fast forward: {e}")
+        time = self._media_player.get_time() + TIME_SKIP
+        self._seek(time)
 
     def rewind(self) -> None:
         """
         Rewind media player playback.
         """
 
-        try:
-            time = self._media_player.get_time() - TIME_SKIP
-            self._seek(time)
-        except Exception as e:
-            print(f"Could not rewind: {e}")
+        time = self._media_player.get_time() - TIME_SKIP
+        self._seek(time)
 
     def go_to_end(self) -> None:
         """
@@ -172,87 +171,12 @@ class MediaPlaybackController:
         self._playback_thread.start()
 
     def close_playback_thread(self) -> None:
+        """
+        Close the playback thread
+        """
+
         STOP_EVENT.set()
         self._playback_thread.join()
 
     def _on_time_changed(self, _: VLCEvent) -> None:
         status.update(position=self._media_player.get_time())
-
-
-# from time import sleep
-#
-# from vlc import MediaListPlayer, MediaPlayer
-#
-# from constants import DEFAULT_PB_MODE, SEEK_INTERVAL
-#
-#
-# class PlaybackController:
-#     def __init__(self, media_list_player: MediaListPlayer) -> None:
-#         self.media_list_player = media_list_player
-#         self.media_player: MediaPlayer = media_list_player.get_media_player()  # type: ignore
-#
-#     def pause(self) -> None:
-#         try:
-#             self.media_list_player.pause()
-#         except Exception as e:
-#             print(f"Could not pause media: {e}")
-#
-#     def stop(self) -> None:
-#         try:
-#             self.media_player.stop()
-#         except Exception as e:
-#             print(f"Could not stop media: {e}")
-#
-#     def fast_forward(self) -> None:
-#         try:
-#             time = self.media_player.get_time() + SEEK_INTERVAL
-#             self.seek(time)
-#         except Exception as e:
-#             print(f"Could not fast forward: {e}")
-#
-#     def rewind(self) -> None:
-#         try:
-#             time = self.media_player.get_time() - SEEK_INTERVAL
-#             self.seek(time)
-#         except Exception as e:
-#             print(f"Could not fast forward: {e}")
-#
-#     def go_to_end(self) -> None:
-#         if self.is_stopped():
-#             return
-#
-#         media = self.media_player.get_media()
-#         media.parse()
-#         self.seek(media.get_duration() - 100)
-#
-#     def seek(self, position: int) -> None:
-#         media = self.media_player.get_media()
-#         media.parse()
-#
-#         duration = media.get_duration()
-#         if position >= duration:
-#             self.media_player.set_time(duration - 10)
-#             return
-#
-#         if position <= 0:
-#             self.media_player.set_time(0)
-#             return
-#
-#         if self.is_paused():
-#             self.media_list_player.play()
-#
-#             sleep(0.1)
-#
-#             self.media_player.set_time(position)
-#             self.media_list_player.pause()
-#         else:
-#             self.media_player.set_time(position)
-#
-#     def is_playing(self) -> bool:
-#         return bool(self.media_list_player.is_playing())
-#
-#     def is_paused(self) -> bool:
-#         return not self.is_playing() and not self.is_stopped()
-#
-#     def is_stopped(self) -> None:
-#         return self.media_player.get_time() == -1

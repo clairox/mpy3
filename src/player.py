@@ -1,7 +1,10 @@
 """
-This module contains the `Player` class which handles media playback
-using vlc.MediaPlayer
+This module contains the `Player` class which is the entry point for
+the media player, and the `MediaListPlayer` which manages the playback of
+the media list
 """
+
+# TODO Prevent fast forward/rewind from seeping into next media
 
 import random
 from pathlib import Path
@@ -150,46 +153,40 @@ class MediaListPlayer:
 
         media_list_length = len(self._media_list)
 
-        try:
-            next_idx = self._current_index + 1
+        next_idx = self._current_index + 1
 
-            if self._playback_mode == LOOP_PB_MODE and next_idx >= media_list_length:
-                next_idx = 0
+        if self._playback_mode == LOOP_PB_MODE and next_idx >= media_list_length:
+            next_idx = 0
 
-            if next_idx >= media_list_length:
-                self.reset()
-                if not self.pc.is_stopped():
-                    self.pc.close_playback_thread()
-                send_exit("Playback ended")
-                return
+        if next_idx >= media_list_length:
+            self.reset()
+            if not self.pc.is_stopped():
+                self.pc.close_playback_thread()
+            send_exit("Playback ended")
+            return
 
-            self.change_media(next_idx)
-        except Exception as e:
-            print(f"Could not play next track: {e}")
+        self.change_media(next_idx)
 
     def previous(self) -> None:
         """
         Switch to previous media in media list
         """
 
-        try:
-            prev_idx = self._current_index - 1
+        prev_idx = self._current_index - 1
 
-            is_track_start = self.pc.get_time() <= 3000
-            if self.pc.is_playing() and not is_track_start:
-                self.pc.set_time(0)
-                return
+        is_track_start = self.pc.get_time() <= 3000
+        if self.pc.is_playing() and not is_track_start:
+            self.pc.set_time(0)
+            return
 
-            if self._playback_mode == LOOP_PB_MODE and prev_idx < 0:
-                prev_idx = len(self._media_list) - 1
+        if self._playback_mode == LOOP_PB_MODE and prev_idx < 0:
+            prev_idx = len(self._media_list) - 1
 
-            if prev_idx < 0:
-                self.change_media(0)
-                return
+        if prev_idx < 0:
+            self.change_media(0)
+            return
 
-            self.change_media(prev_idx)
-        except Exception as e:
-            print(f"Could not play previous track: {e}")
+        self.change_media(prev_idx)
 
     def change_media(self, index: int) -> None:
         """
@@ -217,6 +214,10 @@ class MediaListPlayer:
             self.play()
 
     def reset(self) -> None:
+        """
+        Reset to beginning of media list
+        """
+
         self.pc.stop()
         self._current_media.event_manager().event_detach(MEDIA_STATE_CHANGED_EVENT_TYPE)
 

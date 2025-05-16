@@ -1,3 +1,7 @@
+"""
+This module handles playback status output to the console
+"""
+
 from enum import Enum
 
 from constants import DEFAULT_PB_MODE, LOOP_PB_MODE, REPEAT_PB_MODE
@@ -5,12 +9,20 @@ from utils import create_timestring, log
 
 
 class PlaybackState(Enum):
+    """
+    Current playback state
+    """
+
     STOPPED = 0
     PLAYING = 1
     PAUSED = 2
 
 
 class PlaybackStatusDisplay:
+    """
+    The media playback status to be displayed in the console
+    """
+
     def __init__(self, **kwargs) -> None:
         self.state = PlaybackState.STOPPED
         self.media_label = "No track selected"
@@ -25,6 +37,18 @@ class PlaybackStatusDisplay:
         self.update_status_string(**kwargs)
 
     def set_attrs(self, **kwargs) -> None:
+        """
+        Sets the media playback status attributes
+
+        Args:
+            state (PlaybackState): Current playback state
+            media_label (str): Basic information about selected media
+            position (int): Current media playback time
+            total_duration (int): Total duration of selected media
+            shuffle (bool): Whether playback order is randomized
+            playback_mode (PlaybackMode): Default, loop, or repeat
+        """
+
         if "state" in kwargs:
             self.state = kwargs["state"]
 
@@ -44,6 +68,19 @@ class PlaybackStatusDisplay:
             self.playback_mode = kwargs["playback_mode"]
 
     def update_status_string(self, **kwargs) -> None:
+        """
+        Update the status output string
+
+        Args:
+            state (PlaybackState): Current playback state
+            media_label (str): Basic information about selected media
+            position (int): Current media playback time
+            total_duration (int): Total duration of selected media
+            shuffle (bool): Whether playback order is randomized
+            playback_mode (PlaybackMode): Default, loop, or repeat
+
+        """
+
         self.set_attrs(**kwargs)
 
         state_display = ""
@@ -76,6 +113,19 @@ class PlaybackStatusDisplay:
             )
 
     def update(self, **kwargs) -> None:
+        """
+        Update and log status
+
+        Args:
+            state (PlaybackState): Current playback state
+            media_label (str): Basic information about selected media
+            position (int): Current media playback time
+            total_duration (int): Total duration of selected media
+            shuffle (bool): Whether playback order is randomized
+            playback_mode (PlaybackMode): Default, loop, or repeat
+
+        """
+
         self.update_status_string(**kwargs)
         log(self.status)
 
