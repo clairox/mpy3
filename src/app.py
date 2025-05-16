@@ -11,7 +11,6 @@ from player import Player
 from terminalio import getch
 from utils import send_exit
 
-SEEK_INTERVAL = 5000
 ALLOWED_FILE_TYPES = [".mp3"]
 
 

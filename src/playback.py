@@ -3,6 +3,9 @@ This module contains the `MediaPlaybackController` class which handles
 playback of a single media file
 """
 
+# TODO Prevent fast forward/rewind from seeping into next media
+# TODO Seek while paused without playing
+
 from threading import Event as ThreadEvent
 from threading import Thread
 from time import sleep
@@ -10,7 +13,7 @@ from time import sleep
 from vlc import Event as VLCEvent
 from vlc import Media, MediaPlayer
 
-from constants import MEDIA_PLAYER_TIME_CHANGED
+from enums import VLCEventType
 from output import status
 
 STOP_EVENT = ThreadEvent()
@@ -32,7 +35,7 @@ class MediaPlaybackController:
         self._playback_thread = Thread(target=self.play)
 
         self._media_player.event_manager().event_attach(
-            MEDIA_PLAYER_TIME_CHANGED, self._on_time_changed
+            VLCEventType.MEDIA_PLAYER_TIME_CHANGED, self._on_time_changed
         )
 
     def play_until_done(self) -> None:

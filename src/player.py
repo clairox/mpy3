@@ -4,8 +4,7 @@ the media player, and the `MediaListPlayer` which manages the playback of
 the media list
 """
 
-# TODO Prevent fast forward/rewind from seeping into next media
-
+import queue
 import random
 from pathlib import Path
 from threading import Event as ThreadEvent
@@ -14,22 +13,14 @@ from threading import Thread
 from vlc import Event as VLCEvent
 
 import appstate
-from constants import (
-    ARTIST_META,
-    DEFAULT_PB_MODE,
-    ENDED_STATE,
-    LOOP_PB_MODE,
-    MEDIA_STATE_CHANGED_EVENT_TYPE,
-    REPEAT_PB_MODE,
-    TITLE_META,
-)
+from enums import MediaMeta, MediaState, PlaybackMode, VLCEventType
 from medialist import MediaList
 from output import PlaybackState, status
 from playback import MediaPlaybackController
-from q import main_thread_queue, queue
 from utils import extract_path, send_exit
 
 STOP_EVENT = ThreadEvent()
+main_thread_queue = queue.Queue()
 
 
 class Player:
@@ -106,7 +97,7 @@ class MediaListPlayer:
         self.pc = MediaPlaybackController()
         self._set_current_media(start_index)
 
-        self._playback_mode = DEFAULT_PB_MODE
+        self._playback_mode = PlaybackMode.DEFAULT
         self._shuffle = False
 
         media_picker_thread = Thread(target=self._wait_to_select_next, daemon=True)
@@ -155,7 +146,7 @@ class MediaListPlayer:
 
         next_idx = self._current_index + 1
 
-        if self._playback_mode == LOOP_PB_MODE and next_idx >= media_list_length:
+        if self._playback_mode == PlaybackMode.LOOP and next_idx >= media_list_length:
             next_idx = 0
 
         if next_idx >= media_list_length:
@@ -179,7 +170,7 @@ class MediaListPlayer:
             self.pc.set_time(0)
             return
 
-        if self._playback_mode == LOOP_PB_MODE and prev_idx < 0:
+        if self._playback_mode == PlaybackMode.LOOP and prev_idx < 0:
             prev_idx = len(self._media_list) - 1
 
         if prev_idx < 0:
@@ -219,7 +210,9 @@ class MediaListPlayer:
         """
 
         self.pc.stop()
-        self._current_media.event_manager().event_detach(MEDIA_STATE_CHANGED_EVENT_TYPE)
+        self._current_media.event_manager().event_detach(
+            VLCEventType.MEDIA_STATE_CHANGED
+        )
 
         first_media = self._media_list[0]
         app_settings: appstate.AppState = {"last_played": first_media.get_mrl()}
@@ -230,14 +223,14 @@ class MediaListPlayer:
         Toggle between default, loop, and repeat playback modes
         """
 
-        if self._playback_mode == DEFAULT_PB_MODE:
-            self._playback_mode = LOOP_PB_MODE
+        if self._playback_mode == PlaybackMode.DEFAULT:
+            self._playback_mode = PlaybackMode.LOOP
 
-        elif self._playback_mode == LOOP_PB_MODE:
-            self._playback_mode = REPEAT_PB_MODE
+        elif self._playback_mode == PlaybackMode.LOOP:
+            self._playback_mode = PlaybackMode.REPEAT
 
-        elif self._playback_mode == REPEAT_PB_MODE:
-            self._playback_mode = DEFAULT_PB_MODE
+        elif self._playback_mode == PlaybackMode.REPEAT:
+            self._playback_mode = PlaybackMode.DEFAULT
 
         status.update(playback_mode=self._playback_mode)
 
@@ -283,9 +276,9 @@ class MediaListPlayer:
     def _select_next(self) -> None:
         next_idx = self._current_index
 
-        if self._playback_mode == DEFAULT_PB_MODE:
+        if self._playback_mode == PlaybackMode.DEFAULT:
             next_idx += 1
-        elif self._playback_mode == LOOP_PB_MODE:
+        elif self._playback_mode == PlaybackMode.LOOP:
             next_idx += 1
             if next_idx >= len(self._media_list):
                 next_idx = 0
@@ -308,7 +301,7 @@ class MediaListPlayer:
         media.parse()
         self._current_media = media
         self._current_media.event_manager().event_attach(
-            MEDIA_STATE_CHANGED_EVENT_TYPE, self._on_media_state_changed
+            VLCEventType.MEDIA_STATE_CHANGED, self._on_media_state_changed
         )
         self.pc.set_media(self._current_media)
         self._current_index = index
@@ -318,15 +311,15 @@ class MediaListPlayer:
     def _on_media_state_changed(self, _: VLCEvent) -> None:
         state = self._current_media.get_state()
 
-        if state == ENDED_STATE:
+        if state == MediaState.ENDED:
             self._current_media.event_manager().event_detach(
-                MEDIA_STATE_CHANGED_EVENT_TYPE
+                VLCEventType.MEDIA_STATE_CHANGED
             )
 
             self.pc.close_playback_thread()
             main_thread_queue.put(self._select_next)
 
     def _get_media_label(self) -> str:
-        title = self._current_media.get_meta(TITLE_META)
-        artist = self._current_media.get_meta(ARTIST_META) or "Unknown"
+        title = self._current_media.get_meta(MediaMeta.TITLE)
+        artist = self._current_media.get_meta(MediaMeta.ARTIST) or "Unknown"
         return f"{title} - {artist}"

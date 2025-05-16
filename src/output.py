@@ -4,7 +4,7 @@ This module handles playback status output to the console
 
 from enum import Enum
 
-from constants import DEFAULT_PB_MODE, LOOP_PB_MODE, REPEAT_PB_MODE
+from enums import PlaybackMode
 from utils import create_timestring, log
 
 
@@ -37,7 +37,7 @@ class PlaybackStatusDisplay:
         self.position = -1
         self.total_duration = -1
         self.shuffle = False
-        self.playback_mode = DEFAULT_PB_MODE
+        self.playback_mode = PlaybackMode.DEFAULT
 
         self.status = ""
 
@@ -89,11 +89,11 @@ class PlaybackStatusDisplay:
             shuffle_display = "Shuffle Off"
 
         playback_mode_display = ""
-        if self.playback_mode == DEFAULT_PB_MODE:
+        if self.playback_mode == PlaybackMode.DEFAULT:
             playback_mode_display = "Loop Off"
-        elif self.playback_mode == LOOP_PB_MODE:
+        elif self.playback_mode == PlaybackMode.LOOP:
             playback_mode_display = "Loop All"
-        elif self.playback_mode == REPEAT_PB_MODE:
+        elif self.playback_mode == PlaybackMode.REPEAT:
             playback_mode_display = "Repeat 1"
 
         self.status = f"{state_display:<9}  |  {shuffle_display:<11}  |  {playback_mode_display:<7}  |  {self.media_label:<40}"
