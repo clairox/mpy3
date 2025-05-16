@@ -38,6 +38,48 @@ class Player:
         self._media_list = MediaList(mrls)
         self.media_list_player = MediaListPlayer(self._media_list)
 
+    def play(self) -> None:
+        """
+        Start/resume media playback
+        """
+
+        self.media_list_player.play()
+
+    def pause(self) -> None:
+        """
+        Pause media playback
+        """
+
+        self.media_list_player.pause()
+
+    def forward(self) -> None:
+        """
+        Fast forward media playback
+        """
+
+        self.media_list_player.forward()
+
+    def rewind(self) -> None:
+        """
+        Rewind media playback
+        """
+
+        self.media_list_player.rewind()
+
+    def next(self) -> None:
+        """
+        Switch to next media in media list
+        """
+
+        self.media_list_player.next()
+
+    def previous(self) -> None:
+        """
+        Switch to previous media in media list
+        """
+
+        self.media_list_player.previous()
+
 
 class MediaListPlayer:
     """
@@ -48,7 +90,8 @@ class MediaListPlayer:
         self._base_media_list = media_list
         self._media_list = self._base_media_list
 
-        start_index = 0
+        self._current_index = 0
+        start_index = self._current_index
         state = appstate.load()
         start_mrl = str(state.get("last_played"))
         mrls: list[str] = [
@@ -85,6 +128,20 @@ class MediaListPlayer:
 
         self.pc.pause()
         status.update(state=PlaybackState.PAUSED)
+
+    def forward(self) -> None:
+        """
+        Fast forward media playback
+        """
+
+        self.pc.forward()
+
+    def rewind(self) -> None:
+        """
+        Rewind media playback
+        """
+
+        self.pc.rewind()
 
     def next(self) -> None:
         """

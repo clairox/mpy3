@@ -1,6 +1,6 @@
-# TODO Handle fast forwarding/rewinding
 from threading import Event as ThreadEvent
 from threading import Thread
+from time import sleep
 
 from vlc import Event as VLCEvent
 from vlc import Media, MediaPlayer
@@ -9,6 +9,7 @@ from constants import MEDIA_PLAYER_TIME_CHANGED
 from output import status
 
 STOP_EVENT = ThreadEvent()
+TIME_SKIP = 5000
 
 
 class MediaPlaybackController:
@@ -18,8 +19,10 @@ class MediaPlaybackController:
 
     def __init__(self, media: Media | None = None) -> None:
         self._media_player: MediaPlayer = MediaPlayer()  # type: ignore
-        if media:
-            self._media_player.set_media(media)
+        self._media: Media | None = media
+        if self._media:
+            self._media.parse()
+            self._media_player.set_media(self._media)
 
         self._playback_thread = Thread(target=self.play)
 
@@ -60,12 +63,28 @@ class MediaPlaybackController:
         Fast forward media player playback.
         """
 
+        try:
+            time = self._media_player.get_time() + TIME_SKIP
+            self._seek(time)
+        except Exception as e:
+            print(f"Could not fast forward: {e}")
+
     def rewind(self) -> None:
         """
         Rewind media player playback.
         """
 
+        try:
+            time = self._media_player.get_time() - TIME_SKIP
+            self._seek(time)
+        except Exception as e:
+            print(f"Could not rewind: {e}")
+
     def go_to_end(self) -> None:
+        """
+        DEV: Jump to last second of media playback
+        """
+
         if self.is_stopped():
             return
 
@@ -95,6 +114,10 @@ class MediaPlaybackController:
             media (Media): The media object
         """
 
+        if not media.is_parsed():
+            media.parse()
+
+        self._media = media
         self._media_player.set_media(media)
 
     def get_time(self) -> int:
@@ -122,7 +145,27 @@ class MediaPlaybackController:
             time (int): The time in milliseconds to jump to
         """
 
-        print(time)
+        if self._media is None:
+            return
+
+        duration = self._media.get_duration()
+        if time >= duration:
+            self._media_player.set_time(duration - 10)
+            return
+
+        if time <= 0:
+            self._media_player.set_time(0)
+            return
+
+        is_paused = not self.is_playing and not self.is_stopped()
+        if is_paused:
+            self.play()
+            sleep(0.01)
+
+            self._media_player.set_time(time)
+            self.pause()
+        else:
+            self._media_player.set_time(time)
 
     def _open_playback_thread(self) -> None:
         self._playback_thread = Thread(target=self.play, daemon=True)
