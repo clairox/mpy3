@@ -10,10 +10,10 @@ from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
 
-from vlc import Event as VLCEvent
+import vlc
 
 import appstate
-from enums import MediaMeta, MediaState, PlaybackMode, VLCEventType
+from enums import MediaMetadata, MediaState, PlaybackMode, VLCEvent
 from medialist import MediaList
 from playback import MediaPlaybackController
 from status import PlaybackState, status
@@ -210,9 +210,7 @@ class MediaListPlayer:
         """
 
         self.pc.stop()
-        self._current_media.event_manager().event_detach(
-            VLCEventType.MEDIA_STATE_CHANGED
-        )
+        self._current_media.event_manager().event_detach(VLCEvent.MEDIA_STATE_CHANGED)
 
         first_media = self._media_list[0]
         app_settings: appstate.AppState = {"last_played": first_media.get_mrl()}
@@ -301,25 +299,25 @@ class MediaListPlayer:
         media.parse()
         self._current_media = media
         self._current_media.event_manager().event_attach(
-            VLCEventType.MEDIA_STATE_CHANGED, self._on_media_state_changed
+            VLCEvent.MEDIA_STATE_CHANGED, self._on_media_state_changed
         )
         self.pc.set_media(self._current_media)
         self._current_index = index
 
         status.update(media_label=self._get_media_label())
 
-    def _on_media_state_changed(self, _: VLCEvent) -> None:
+    def _on_media_state_changed(self, _: vlc.Event) -> None:
         state = self._current_media.get_state()
 
         if state == MediaState.ENDED:
             self._current_media.event_manager().event_detach(
-                VLCEventType.MEDIA_STATE_CHANGED
+                VLCEvent.MEDIA_STATE_CHANGED
             )
 
             self.pc.close_playback_thread()
             main_thread_queue.put(self._select_next)
 
     def _get_media_label(self) -> str:
-        title = self._current_media.get_meta(MediaMeta.TITLE)
-        artist = self._current_media.get_meta(MediaMeta.ARTIST) or "Unknown"
+        title = self._current_media.get_meta(MediaMetadata.TITLE)
+        artist = self._current_media.get_meta(MediaMetadata.ARTIST) or "Unknown"
         return f"{title} - {artist}"

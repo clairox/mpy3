@@ -10,10 +10,9 @@ from threading import Event as ThreadEvent
 from threading import Thread
 from time import sleep
 
-from vlc import Event as VLCEvent
-from vlc import Media, MediaPlayer
+import vlc
 
-from enums import VLCEventType
+from enums import VLCEvent
 from status import status
 
 STOP_EVENT = ThreadEvent()
@@ -25,9 +24,9 @@ class MediaPlaybackController:
     Handles vlc.MediaPlayer playback.
     """
 
-    def __init__(self, media: Media | None = None) -> None:
-        self._media_player: MediaPlayer = MediaPlayer()  # type: ignore
-        self._media: Media | None = media
+    def __init__(self, media: vlc.Media | None = None) -> None:
+        self._media_player: vlc.MediaPlayer = vlc.MediaPlayer()  # type: ignore
+        self._media: vlc.Media | None = media
         if self._media:
             self._media.parse()
             self._media_player.set_media(self._media)
@@ -35,7 +34,7 @@ class MediaPlaybackController:
         self._playback_thread = Thread(target=self.play)
 
         self._media_player.event_manager().event_attach(
-            VLCEventType.MEDIA_PLAYER_TIME_CHANGED, self._on_time_changed
+            VLCEvent.MEDIA_PLAYER_TIME_CHANGED, self._on_time_changed
         )
 
     def play_until_done(self) -> None:
@@ -108,12 +107,12 @@ class MediaPlaybackController:
 
         return self._media_player.get_time() == -1
 
-    def set_media(self, media: Media) -> None:
+    def set_media(self, media: vlc.Media) -> None:
         """
         Set the media object to play.
 
         Args:
-            media (Media): The media object
+            media (vlc.Media): The media object
         """
 
         if not media.is_parsed():
@@ -181,5 +180,5 @@ class MediaPlaybackController:
         STOP_EVENT.set()
         self._playback_thread.join()
 
-    def _on_time_changed(self, _: VLCEvent) -> None:
+    def _on_time_changed(self, _: vlc.Event) -> None:
         status.update(position=self._media_player.get_time())

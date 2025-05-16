@@ -5,7 +5,7 @@ list of media files
 
 from pathlib import Path
 
-from vlc import Media
+import vlc
 
 
 class MediaList:
@@ -14,17 +14,17 @@ class MediaList:
     """
 
     def __init__(self, mrls: list[Path]) -> None:
-        self._media_list: list[Media] = []
+        self._media_list: list[vlc.Media] = []
         for mrl in mrls:
-            media: Media = Media(mrl)  # type: ignore
+            media: vlc.Media = vlc.Media(mrl)  # type: ignore
             self._media_list.append(media)
 
-    def index(self, media: Media) -> int:
+    def index(self, media: vlc.Media) -> int:
         """
         Looks up the index of a media file, returns -1 if media is not in list.
 
         Args:
-            media (Media): Media file to lookup
+            media (vlc.Media): Media file to lookup
 
         Returns:
             int: index of media file, -1 if media not in list
@@ -50,5 +50,5 @@ class MediaList:
     def __len__(self) -> int:
         return len(self._media_list)
 
-    def __getitem__(self, index: int) -> Media:
+    def __getitem__(self, index: int) -> vlc.Media:
         return self._media_list[index]

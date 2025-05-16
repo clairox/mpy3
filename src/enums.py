@@ -4,7 +4,7 @@ This module contains important enums
 
 from enum import Enum
 
-from vlc import EventType, Meta, State
+import vlc
 
 
 class Control(Enum):
@@ -24,13 +24,13 @@ class Control(Enum):
     TOGGLE_SHUFFLE = 9
 
 
-class VLCEventType:
+class VLCEvent:
     """
     VLC Events
     """
 
-    MEDIA_STATE_CHANGED = EventType(5)
-    MEDIA_PLAYER_TIME_CHANGED = EventType(267)
+    MEDIA_STATE_CHANGED = vlc.EventType(5)
+    MEDIA_PLAYER_TIME_CHANGED = vlc.EventType(267)
 
 
 class MediaState:
@@ -38,7 +38,7 @@ class MediaState:
     Media playback state
     """
 
-    ENDED = State(6)
+    ENDED = vlc.State(6)
 
 
 class PlaybackMode(Enum):
@@ -51,10 +51,10 @@ class PlaybackMode(Enum):
     REPEAT = 2
 
 
-class MediaMeta:
+class MediaMetadata:
     """
     Media metadata
     """
 
-    TITLE = Meta(0)
-    ARTIST = Meta(1)
+    TITLE = vlc.Meta(0)
+    ARTIST = vlc.Meta(1)
