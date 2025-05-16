@@ -7,6 +7,23 @@ from enum import Enum
 from vlc import EventType, Meta, State
 
 
+class Control(Enum):
+    """
+    Enum representing application commands
+    """
+
+    NONE = 0
+    PLAY = 1
+    FFORWARD = 2
+    REWIND = 3
+    NEXT = 4
+    BACK = 5
+    QUIT = 6
+    STOP = 7
+    TOGGLE_MODE = 8
+    TOGGLE_SHUFFLE = 9
+
+
 class VLCEventType:
     """
     VLC Events
