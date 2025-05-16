@@ -15,8 +15,8 @@ from vlc import Event as VLCEvent
 import appstate
 from enums import MediaMeta, MediaState, PlaybackMode, VLCEventType
 from medialist import MediaList
-from output import PlaybackState, status
 from playback import MediaPlaybackController
+from status import PlaybackState, status
 from utils import extract_path, send_exit
 
 STOP_EVENT = ThreadEvent()

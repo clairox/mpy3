@@ -14,7 +14,7 @@ from vlc import Event as VLCEvent
 from vlc import Media, MediaPlayer
 
 from enums import VLCEventType
-from output import status
+from status import status
 
 STOP_EVENT = ThreadEvent()
 TIME_SKIP = 5000
