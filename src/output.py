@@ -19,6 +19,8 @@ class PlaybackStatusDisplay:
         self.shuffle = False
         self.playback_mode = DEFAULT_PB_MODE
 
+        self.status = ""
+
         self.set_attrs(**kwargs)
         self.update_status_string(**kwargs)
 
@@ -66,12 +68,16 @@ class PlaybackStatusDisplay:
         elif self.playback_mode == REPEAT_PB_MODE:
             playback_mode_display = "Repeat 1"
 
-        status = f"{state_display:<9}  |  {shuffle_display:<11}  |  {playback_mode_display:<7}  |  {self.media_label:<40}"
+        self.status = f"{state_display:<9}  |  {shuffle_display:<11}  |  {playback_mode_display:<7}  |  {self.media_label:<40}"
 
         if self.state != PlaybackState.STOPPED:
-            status += f"  |  {create_timestring(self.position, self.total_duration)}"
+            self.status += (
+                f"  |  {create_timestring(self.position, self.total_duration)}"
+            )
 
-        log(status)
+    def update(self, **kwargs) -> None:
+        self.update_status_string(**kwargs)
+        log(self.status)
 
 
-playback_status_display = PlaybackStatusDisplay()
+status = PlaybackStatusDisplay()

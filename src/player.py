@@ -7,522 +7,268 @@ import random
 from pathlib import Path
 from threading import Event as ThreadEvent
 from threading import Thread
-from time import sleep
-from typing import Union
 
-from vlc import Media, MediaList, MediaListPlayer, MediaPlayer
+from vlc import Event as VLCEvent
 
 import appstate
 from constants import (
-    ALLOWED_FILE_TYPES,
     ARTIST_META,
     DEFAULT_PB_MODE,
+    ENDED_STATE,
+    LOOP_PB_MODE,
     MEDIA_STATE_CHANGED_EVENT_TYPE,
+    REPEAT_PB_MODE,
     TITLE_META,
 )
-from output import PlaybackState, playback_status_display
-from playback import PlaybackController
-from utils import extract_path, log, send_exit
+from medialist import MediaList
+from output import PlaybackState, status
+from playback import MediaPlaybackController
+from q import main_thread_queue, queue
+from utils import extract_path, send_exit
 
 STOP_EVENT = ThreadEvent()
 
 
 class Player:
     """
-    Handles vlc.MediaListPlayer playback
+    Handles MediaListPlayer playback.
     """
 
-    def __init__(self, media_dir: Path):
-        self.player: MediaListPlayer = MediaListPlayer()  # type: ignore
-        self.pc = PlaybackController(self.player)
-        self.pm = PlaylistManager(self.pc, media_dir)
+    def __init__(self, mrls: list[Path]) -> None:
+        self._media_list = MediaList(mrls)
+        self.media_list_player = MediaListPlayer(self._media_list)
 
-        # if mode == "loop":
-        #     self.playback_mode = LOOP_PB_MODE
-        # elif mode == "repeat":
-        #     self.playback_mode = REPEAT_PB_MODE
-        # else:
-        #     self.playback_mode = DEFAULT_PB_MODE
-        #
-        # self.player.set_playback_mode(self.playback_mode)
 
-        self.current_media_player: MediaPlayer = self.player.get_media_player()
+class MediaListPlayer:
+    """
+    Handles playback of media from MediaList.
+    """
 
-        self.playback_thread: Thread = Thread(target=self.play)
+    def __init__(self, media_list: MediaList) -> None:
+        self._base_media_list = media_list
+        self._media_list = self._base_media_list
 
-        playback_status_display.update_status_string(
-            state=PlaybackState.STOPPED, media_label=self.pm.media_label
-        )
+        start_index = 0
+        state = appstate.load()
+        start_mrl = str(state.get("last_played"))
+        mrls: list[str] = [
+            str(extract_path(m.get_mrl())) for m in self._base_media_list
+        ]
+        if start_mrl in mrls:
+            start_index = mrls.index(start_mrl)
 
-    def play_until_done(self) -> None:
-        """
-        Starts media playback thread
-        """
+        self.pc = MediaPlaybackController()
+        self._set_current_media(start_index)
 
-        self.open_playback_thread()
+        self._playback_mode = DEFAULT_PB_MODE
+        self._shuffle = False
+
+        media_picker_thread = Thread(target=self._wait_to_select_next, daemon=True)
+        media_picker_thread.start()
 
     def play(self) -> None:
+        """
+        Start media playback
+        """
+
+        self.pc.play_until_done()
+        status.update(
+            state=PlaybackState.PLAYING,
+            position=self.pc.get_time(),
+            total_duration=self._current_media.get_duration(),
+        )
+
+    def pause(self) -> None:
+        """
+        Pause media playback
+        """
+
+        self.pc.pause()
+        status.update(state=PlaybackState.PAUSED)
+
+    def next(self) -> None:
+        """
+        Switch to next media in media list
+        """
+
+        media_list_length = len(self._media_list)
+
         try:
-            if self.pc.is_stopped():
-                self.player.play_item_at_index(self.pm.current_idx)
-            else:
-                self.player.play()
-        except KeyboardInterrupt:
-            pass
+            next_idx = self._current_index + 1
+
+            if self._playback_mode == LOOP_PB_MODE and next_idx >= media_list_length:
+                next_idx = 0
+
+            if next_idx >= media_list_length:
+                self.reset()
+                if not self.pc.is_stopped():
+                    self.pc.close_playback_thread()
+                send_exit("Playback ended")
+                return
+
+            self.change_media(next_idx)
         except Exception as e:
-            print(f"Could not play media: {e}")
+            print(f"Could not play next track: {e}")
+
+    def previous(self) -> None:
+        """
+        Switch to previous media in media list
+        """
+
+        try:
+            prev_idx = self._current_index - 1
+
+            is_track_start = self.pc.get_time() <= 3000
+            if self.pc.is_playing() and not is_track_start:
+                self.pc.set_time(0)
+                return
+
+            if self._playback_mode == LOOP_PB_MODE and prev_idx < 0:
+                prev_idx = len(self._media_list) - 1
+
+            if prev_idx < 0:
+                self.change_media(0)
+                return
+
+            self.change_media(prev_idx)
+        except Exception as e:
+            print(f"Could not play previous track: {e}")
+
+    def change_media(self, index: int) -> None:
+        """
+        Switch media to media at given index in the media list.
+
+        Args:
+            index (int): Index of media in media list to change to
+        """
+
+        if self.pc.is_stopped():
+            self._set_current_media(index)
+            media = self._current_media
+            self.pc.set_media(media)
+
+            app_settings: appstate.AppState = {"last_played": media.get_mrl()}
+            appstate.save(app_settings)
+
+            status.update(
+                media_label=self._get_media_label(),
+                position=0,
+                total_duration=media.get_duration(),
+            )
+        else:
+            self._set_current_media(index)
+            self.play()
 
     def reset(self) -> None:
-        media = self.pm.current_media
-        if media is None:
-            return
+        self.pc.stop()
+        self._current_media.event_manager().event_detach(MEDIA_STATE_CHANGED_EVENT_TYPE)
 
-        media.event_manager().event_detach(MEDIA_STATE_CHANGED_EVENT_TYPE)
-
-        first_media: Media = self.pm.media_list.item_at_index(0)  # type: ignore
+        first_media = self._media_list[0]
         app_settings: appstate.AppState = {"last_played": first_media.get_mrl()}
         appstate.save(app_settings)
 
-        self.close_playback_thread()
-
-    def open_playback_thread(self) -> None:
-        self.playback_thread = Thread(target=self.play)
-        self.playback_thread.daemon = True
-        self.playback_thread.start()
-
-    def close_playback_thread(self) -> None:
-        STOP_EVENT.set()
-        self.playback_thread.join()
-
-    # Playback
-
-    # def play_until_done(self) -> None:
-    #     """
-    #     Starts media playback thread
-    #     """
-    #
-    #     self.playback_thread = Thread(target=self.pc.play)
-    #     self.playback_thread.daemon = True
-    #     self.playback_thread.start()
-    #
-    # def play(self) -> None:
-    #     """
-    #     Start media playback of queued media
-    #     """
-    #
-    #     try:
-    #         if self.is_stopped():
-    #             self.player.play_item_at_index(self.pm.current_idx)
-    #         else:
-    #             self.player.play()
-    #
-    #     except KeyboardInterrupt:
-    #         pass
-    #     except Exception as e:
-    #         print(f"Could not play media: {e}")
-    #
-    # def pause(self) -> None:
-    #     """
-    #     Pauses media playback if media is playing
-    #     """
-    #
-    #     try:
-    #         self.player.pause()
-    #
-    #     except Exception as e:
-    #         print(f"Could not pause media: {e}")
-    #
-    # def stop(self) -> None:
-    #     """
-    #     Stop media playback and clear the queue
-    #     """
-    #
-    #     try:
-    #         self.current_media_player.stop()
-    #     except Exception as e:
-    #         print(f"Could not stop media: {e}")
-    #
-    # def fast_forward(self) -> None:
-    #     """
-    #     Fast forwards media playback by predefined seek interval
-    #     """
-    #
-    #     try:
-    #         time = self.current_media_player.get_time() + SEEK_INTERVAL
-    #         self.seek(time)
-    #     except Exception as e:
-    #         print(f"Could not fast forward: {e}")
-    #
-    # def rewind(self) -> None:
-    #     """
-    #     Rewinds media playback by predefined seek interval
-    #     """
-    #
-    #     try:
-    #         time = self.current_media_player.get_time() - SEEK_INTERVAL
-    #         self.seek(time)
-    #     except Exception as e:
-    #         print(f"Could not rewind: {e}")
-    #
-    # def next(self) -> None:
-    #     """
-    #     Skips to next item in media list
-    #     """
-    #
-    #     media_list_count = self.pm.media_list.count()
-    #     current_idx = self.pm.current_idx
-    #
-    #     try:
-    #         if self.is_stopped() and current_idx < media_list_count - 1:
-    #             self.pm.set_current_media(current_idx + 1)
-    #             self.status_display.update_status_string(
-    #                 media_label=self.pm.media_label
-    #             )
-    #             return
-    #
-    #         next_idx = current_idx + 1
-    #         if next_idx >= media_list_count:
-    #             if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
-    #                 self.stop()
-    #                 return
-    #
-    #         if self.playback_mode == REPEAT_PB_MODE:
-    #             self.player.play_item_at_index(next_idx)
-    #             return
-    #
-    #         self.pm.set_current_media(current_idx + 1)
-    #         self.player.play_item_at_index(self.pm.current_idx)
-    #     except Exception as e:
-    #         print(f"Could not play next track: {e}")
-    #
-    # def back(self) -> None:
-    #     """
-    #     Skips to previous item in media list or go back to media start
-    #
-    #     Sets time to 0 if past 3 seconds into media
-    #     """
-    #
-    #     current_idx = self.pm.current_idx
-    #
-    #     try:
-    #         if self.is_stopped() and current_idx > 0:
-    #             self.pm.set_current_media(current_idx - 1)
-    #             self.status_display.update_status_string(
-    #                 media_label=self.pm.media_label
-    #             )
-    #             return
-    #         elif current_idx == 0:
-    #             return
-    #
-    #         is_track_start = self.current_media_player.get_time() <= 3000
-    #         if not is_track_start:
-    #             self.current_media_player.set_time(0)
-    #             return
-    #
-    #         previous_index = current_idx - 1
-    #         if previous_index < 0:
-    #             if self.playback_mode in (DEFAULT_PB_MODE, REPEAT_PB_MODE):
-    #                 self.player.play_item_at_index(0)
-    #                 return
-    #
-    #         if self.playback_mode == REPEAT_PB_MODE:
-    #             self.player.play_item_at_index(previous_index)
-    #             return
-    #
-    #         self.pm.set_current_media(current_idx - 1)
-    #         self.player.play_item_at_index(self.pm.current_idx)
-    #     except Exception as e:
-    #         print(f"Could not play next track: {e}")
-    #
-    # def seek(self, t: int) -> None:
-    #     """
-    #     Seeks to the specified time in the media file.
-    #
-    #     If the specified time is beyond the track length, the
-    #     media is stopped. If the time is less than or equal to
-    #     0, the media starts from the beginning. Otherwise, the
-    #     media is paused after seeking to the specified time.
-    #
-    #     Args:
-    #         t (int): The time to seek to, in milliseconds.
-    #     """
-    #
-    #     if self.pm.current_media is None:
-    #         return
-    #
-    #     duration = self.pm.current_media.get_duration()
-    #     if t > duration:
-    #         self.current_media_player.set_time(duration)
-    #     elif t <= 0:
-    #         self.current_media_player.set_time(0)
-    #     else:
-    #         if not self.player.is_playing():
-    #             self.player.play()
-    #             sleep(0.01)
-    #             self.current_media_player.set_time(t)
-    #             self.player.pause()
-    #         else:
-    #             self.current_media_player.set_time(t)
-
-    # Callbacks
-
-    # def on_media_state_change(self, _: Event) -> None:
-    #     """
-    #     Event callback executed on media state changes
-    #     """
-    #
-    #     if self.pm.current_media is None:
-    #         return
-    #
-    #     state = self.pm.current_media.get_state()
-    #
-    #     def reset() -> None:
-    #         if self.pm.current_media is None:
-    #             return
-    #
-    #         self.pm.current_media.event_manager().event_detach(EventType(5))
-    #         self.current_media_player = self.player.get_media_player()
-    #
-    #         m: Media = self.pm.media_list.item_at_index(0)  # type: ignore
-    #         app_settings: AppState = {"last_played": m.get_mrl()}
-    #         appstate.save(app_settings)
-    #
-    #         self.pc.close_thread()
-    #
-    #     if state == IDLE_STATE:
-    #         self.pm.current_media.event_manager().event_detach(EventType(5))
-    #     elif state == PLAYING_STATE:
-    #         if self.media_starting is True:
-    #             self.media_starting = False
-    #         else:
-    #             self.status_display.update_status_string(
-    #                 state=PlaybackState.PLAYING,
-    #                 media_label=self.pm.media_label,
-    #                 position=self.current_media_player.get_time(),
-    #                 total_duration=self.pm.current_media.get_duration(),
-    #             )
-    #     elif state == PAUSED_STATE:
-    #         self.status_display.update_status_string(
-    #             state=PlaybackState.PAUSED,
-    #             position=self.current_media_player.get_time(),
-    #         )
-    #     elif state == STOPPING_STATE:
-    #         reset()
-    #         send_exit("Playback stopped.")
-    #     elif state == ENDED_STATE:
-    #         if self.pm.current_idx == self.pm.media_list.count() - 1:
-    #             if self.playback_mode == DEFAULT_PB_MODE:
-    #                 reset()
-    #                 send_exit("Playback ended.")
-    #
-    # def on_play_begin(self, _: Event) -> None:
-    #     """
-    #     Event callback executed when next media playback begins
-    #     """
-    #     media = self.pm.current_media
-    #
-    #     if media is None:
-    #         return
-    #
-    #     media.event_manager().event_attach(
-    #         MEDIA_STATE_CHANGED_EVENT_TYPE, self.on_media_state_change
-    #     )
-    #
-    #     self.media_starting = True
-    #
-    #     app_settings: AppState = {"last_played": media.get_mrl()}
-    #     appstate.save(app_settings)
-    #
-    #     self.status_display.update_status_string(
-    #         state=PlaybackState.PLAYING,
-    #         media_label=self.pm.media_label,
-    #         position=0,
-    #         total_duration=media.get_duration(),
-    #     )
-    #
-    # def on_time_changed(self, _: Event) -> None:
-    #     if self.pm.current_media is None:
-    #         return
-    #
-    #     if self.current_media_player.get_time():
-    #         self.status_display.update_status_string(
-    #             position=self.current_media_player.get_time(),
-    #             total_duration=self.pm.current_media.get_duration(),
-    #         )
-
-    # Utils
-
-    def set_playlist(self, mrls: list[Path]) -> None:
-        self.pm.set_playlist(mrls, self.player)
-
     def toggle_playback_mode(self) -> None:
-        self.pm.toggle_playback_mode()
+        """
+        Toggle between default, loop, and repeat playback modes
+        """
 
-    # def set_media_list(self, mrls: list[Path]) -> None:
-    #     """
-    #     Queue up media file for playback
-    #     """
-    #
-    #     state = appstate.load()
-    #     start = state.get("last_played")
-    #
-    #     l = random.sample(mrls, len(mrls)) if self.shuffle else mrls
-    #
-    #     if start in l:
-    #         if self.shuffle:
-    #             l = [start] + [p for p in l if p != start]
-    #             self.start_idx = 0
-    #         else:
-    #             self.start_idx = l.index(start)
-    #
-    #     self.media_list = MediaList(l)  # type: ignore
-    #     self.player.set_media_list(self.media_list)
-    #
-    #     self.set_current_track(self.start_idx)
+        if self._playback_mode == DEFAULT_PB_MODE:
+            self._playback_mode = LOOP_PB_MODE
 
+        elif self._playback_mode == LOOP_PB_MODE:
+            self._playback_mode = REPEAT_PB_MODE
 
-class PlaylistManager:
-    def __init__(self, pc: PlaybackController, media_dir: Path) -> None:
-        self.current_idx = -1
-        self.current_media: Union[Media, None] = None
-        self.media_list: MediaList = MediaList()  # type: ignore
-        self.pc = pc
+        elif self._playback_mode == REPEAT_PB_MODE:
+            self._playback_mode = DEFAULT_PB_MODE
 
-        self.media_label = "No track selected"
-
-        self.playback_mode = DEFAULT_PB_MODE
-        self.shuffle = False
-
-        self.mrls = [
-            f
-            for f in sorted(Path(media_dir).iterdir())
-            if f.is_file() and f.suffix in ALLOWED_FILE_TYPES
-        ]
-        if len(self.mrls) == 0:
-            send_exit("No media found. Exiting.")
-
-        state = appstate.load()
-        start_mrl = state.get("last_played")
-        if start_mrl in self.mrls:
-            self.current_idx = self.mrls.index(start_mrl)
-
-        self.set_playlist(self.mrls, self.pc.media_list_player)
-
-    def next(self) -> None:
-        playlist_length = self.media_list.count()
-
-        try:
-            next_idx = self.current_idx + 1
-
-            if self.pc.is_stopped():
-                if next_idx < playlist_length:
-                    self.set_current_media(next_idx)
-                    media = self.current_media
-                    if media is None:
-                        return
-
-                    app_settings: appstate.AppState = {"last_played": media.get_mrl()}
-                    appstate.save(app_settings)
-
-                    playback_status_display.update_status_string(
-                        media_label=self.media_label,
-                        position=0,
-                        total_duration=media.get_duration(),
-                    )
-                    return
-                return
-
-            if next_idx >= playlist_length:
-                self.pc.stop()
-                return
-
-            self.set_current_media(next_idx)
-            self.pc.media_list_player.play_item_at_index(next_idx)
-
-        except Exception as e:
-            print(f"Could not play next track: {e}")
-
-    def back(self) -> None:
-        try:
-            prev_idx = self.current_idx - 1
-
-            if self.pc.is_stopped():
-                if prev_idx >= 0:
-                    self.set_current_media(prev_idx)
-                    media = self.current_media
-                    if media is None:
-                        return
-
-                    app_settings: appstate.AppState = {"last_played": media.get_mrl()}
-                    appstate.save(app_settings)
-
-                    playback_status_display.update_status_string(
-                        media_label=self.media_label,
-                        position=0,
-                        total_duration=media.get_duration(),
-                    )
-                    return
-                return
-
-            is_track_start = self.pc.media_player.get_time() <= 3000
-            if not is_track_start:
-                self.pc.media_player.set_time(0)
-                return
-
-            if prev_idx < 0:
-                self.set_current_media(0)
-                self.pc.media_list_player.play_item_at_index(0)
-                return
-
-            self.set_current_media(prev_idx)
-            self.pc.media_list_player.play_item_at_index(prev_idx)
-        except Exception as e:
-            print(f"Could not play next track: {e}")
-
-    def set_playlist(self, mrls: list[Path], player: MediaListPlayer) -> None:
-        self.media_list: MediaList = MediaList(mrls)  # type: ignore
-        player.set_media_list(self.media_list)
-
-        self.set_current_media(self.current_idx)
-        playback_status_display.update_status_string(media_label=self.media_label)
-
-    def set_current_media(self, idx: int) -> None:
-        media = self.media_list.item_at_index(idx)
-        media.parse()
-
-        self.current_media = media
-        self.current_idx = idx
-
-        title = media.get_meta(TITLE_META)
-        artist = media.get_meta(ARTIST_META) or "Unknown"
-        self.media_label = f"{title} - {artist}"
-
-    def toggle_playback_mode(self) -> None:
-        pass
+        status.update(playback_mode=self._playback_mode)
 
     def toggle_shuffle(self) -> None:
-        if self.shuffle:
-            if self.current_media is None:
-                return
+        """
+        Toggle shuffle on or off
+        """
+        if self._shuffle:
+            self._media_list = self._base_media_list
+            self._current_index = self._base_media_list.index(self._current_media)
 
-            self.current_idx = self.mrls.index(
-                extract_path(Path(self.current_media.get_mrl()))
-            )
-            self.set_playlist(self.mrls, self.pc.media_list_player)
-            self.shuffle = False
-
-        elif not self.shuffle:
+            self._shuffle = False
+        else:
             population = [
-                f for f in self.mrls if self.mrls.index(f) != self.current_idx
+                m
+                for m in self._base_media_list
+                if self._base_media_list.index(m) != self._current_index
             ]
-            shuffled_mrls = random.sample(
-                population,
-                len(population),
+            shuffled_media_list = random.sample(population, len(population))
+            shuffled_media_list.insert(0, self._current_media)
+            self._media_list = shuffled_media_list
+            self._current_index = 0
+
+            self._shuffle = True
+
+        status.update(shuffle=self._shuffle)
+
+    def is_playing(self) -> bool:
+        """
+        Returns true if media is playing, false otherwise.
+        """
+
+        return self.pc.is_playing()
+
+    def _wait_to_select_next(self) -> None:
+        while True:
+            try:
+                task = main_thread_queue.get_nowait()
+                task()
+            except queue.Empty:
+                pass
+
+    def _select_next(self) -> None:
+        next_idx = self._current_index
+
+        if self._playback_mode == DEFAULT_PB_MODE:
+            next_idx += 1
+        elif self._playback_mode == LOOP_PB_MODE:
+            next_idx += 1
+            if next_idx >= len(self._media_list):
+                next_idx = 0
+
+        if next_idx >= len(self._media_list):
+            self.reset()
+            self.pc.close_playback_thread()
+            send_exit("Playback ended.")
+            return
+
+        app_settings: appstate.AppState = {"last_played": self._current_media.get_mrl()}
+        appstate.save(app_settings)
+
+        self._set_current_media(next_idx)
+        self.pc.set_media(self._current_media)
+        self.play()
+
+    def _set_current_media(self, index: int) -> None:
+        media = self._media_list[index]
+        media.parse()
+        self._current_media = media
+        self._current_media.event_manager().event_attach(
+            MEDIA_STATE_CHANGED_EVENT_TYPE, self._on_media_state_changed
+        )
+        self.pc.set_media(self._current_media)
+        self._current_index = index
+
+        status.update(media_label=self._get_media_label())
+
+    def _on_media_state_changed(self, _: VLCEvent) -> None:
+        state = self._current_media.get_state()
+
+        if state == ENDED_STATE:
+            self._current_media.event_manager().event_detach(
+                MEDIA_STATE_CHANGED_EVENT_TYPE
             )
-            shuffled_mrls.insert(0, self.mrls[self.current_idx])
-            self.current_idx = 0
-            self.set_playlist(shuffled_mrls, self.pc.media_list_player)
 
-            self.shuffle = True
+            self.pc.close_playback_thread()
+            main_thread_queue.put(self._select_next)
 
-        playback_status_display.update_status_string(shuffle=self.shuffle)
+    def _get_media_label(self) -> str:
+        title = self._current_media.get_meta(TITLE_META)
+        artist = self._current_media.get_meta(ARTIST_META) or "Unknown"
+        return f"{title} - {artist}"
