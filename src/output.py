@@ -21,6 +21,14 @@ class PlaybackState(Enum):
 class PlaybackStatusDisplay:
     """
     The media playback status to be displayed in the console
+
+    Args:
+        state (PlaybackState): Current playback state
+        media_label (str): Basic information about selected media
+        position (int): Current media playback time
+        total_duration (int): Total duration of selected media
+        shuffle (bool): Whether playback order is randomized
+        playback_mode (PlaybackMode): Default, loop, or repeat
     """
 
     def __init__(self, **kwargs) -> None:
@@ -39,14 +47,6 @@ class PlaybackStatusDisplay:
     def set_attrs(self, **kwargs) -> None:
         """
         Sets the media playback status attributes
-
-        Args:
-            state (PlaybackState): Current playback state
-            media_label (str): Basic information about selected media
-            position (int): Current media playback time
-            total_duration (int): Total duration of selected media
-            shuffle (bool): Whether playback order is randomized
-            playback_mode (PlaybackMode): Default, loop, or repeat
         """
 
         if "state" in kwargs:
@@ -70,15 +70,6 @@ class PlaybackStatusDisplay:
     def update_status_string(self, **kwargs) -> None:
         """
         Update the status output string
-
-        Args:
-            state (PlaybackState): Current playback state
-            media_label (str): Basic information about selected media
-            position (int): Current media playback time
-            total_duration (int): Total duration of selected media
-            shuffle (bool): Whether playback order is randomized
-            playback_mode (PlaybackMode): Default, loop, or repeat
-
         """
 
         self.set_attrs(**kwargs)
@@ -115,15 +106,6 @@ class PlaybackStatusDisplay:
     def update(self, **kwargs) -> None:
         """
         Update and log status
-
-        Args:
-            state (PlaybackState): Current playback state
-            media_label (str): Basic information about selected media
-            position (int): Current media playback time
-            total_duration (int): Total duration of selected media
-            shuffle (bool): Whether playback order is randomized
-            playback_mode (PlaybackMode): Default, loop, or repeat
-
         """
 
         self.update_status_string(**kwargs)
