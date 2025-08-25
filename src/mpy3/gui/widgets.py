@@ -1,4 +1,4 @@
-from typing import NotRequired, Optional, Required, TypedDict
+from typing import Optional, TypedDict
 
 import pygame
 from pygame import Color
@@ -19,7 +19,7 @@ class Vector:
 
 
 class WidgetProps(TypedDict, total=False):
-    position: NotRequired[Vector]
+    position: Vector
 
 
 class Widget:
@@ -52,8 +52,8 @@ class Widget:
 
 
 class BoxProps(WidgetProps, total=False):
-    size: NotRequired[Vector]
-    background_color: NotRequired[Color]
+    size: Vector
+    background_color: Color
 
 
 class Box(Widget):
@@ -95,7 +95,7 @@ DEFAULT_BUTTON_SIZE = Vector(160, 70)
 
 
 class ButtonProps(BoxProps, total=False):
-    color: NotRequired[Color]
+    color: Color
 
 
 class Button(Box):
@@ -123,32 +123,40 @@ class Screen:
     def __init__(self):
         self.screen = pygame.display.set_mode([1200, 700])
         self.background_color = colors["white"]
-        self.widgets: list[Widget] = []
+        self.children: list[Widget] = []
 
     def update(self):
         self.screen.fill(self.background_color)
-        for widget in self.widgets:
+
+        offset = 0
+        for widget in self.children:
             if type(widget) is Box:
                 box = widget
-                position = box.get_position()
+
                 width = box.get_width()
                 height = box.get_height()
                 pygame.draw.rect(
                     self.screen,
                     box.background_color or self.background_color,
-                    [position.x, position.y, width, height],
+                    [0, offset, width, height],
                 )
+
+                offset += height
 
             if type(widget) is Button:
                 button = widget
-                position = button.get_position()
+
+                pos_x = 0
+                pos_y = offset
                 width = button.get_width()
                 height = button.get_height()
                 pygame.draw.rect(
                     self.screen,
                     button.background_color,
-                    [position.x, position.y, width, height],
+                    [pos_x, pos_y, width, height],
                 )
+
+                offset += height
 
                 font = pygame.font.SysFont("Free Sans", 32)
                 text = font.render(button.name, True, button.color)
@@ -161,10 +169,10 @@ class Screen:
                 self.screen.blit(
                     text,
                     [
-                        button.position.x + text_rel_pos_x,
-                        button.position.y + text_rel_pos_y,
+                        pos_x + text_rel_pos_x,
+                        pos_y + text_rel_pos_y,
                     ],
                 )
 
     def add_widget(self, widget: Widget):
-        self.widgets.append(widget)
+        self.children.append(widget)
