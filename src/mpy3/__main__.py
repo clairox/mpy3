@@ -1,4 +1,9 @@
-from mpy3 import mpy3
+from mpy3 import cli
+
+
+def main():
+    cli.main()
+
 
 if __name__ == "__main__":
-    mpy3.main()
+    main()
