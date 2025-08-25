@@ -72,7 +72,8 @@ class Canvas:
 
 
 class BoxProps(WidgetProps, total=False):
-    size: Vector
+    width: float
+    height: float
     background_color: Color
 
 
@@ -84,39 +85,30 @@ class Box(Widget):
         self._generate_id(self._class_name)
 
         if props is None:
-            props = {
-                "size": Vector.zero(),
-            }
+            props = {"width": 0, "height": 0}
 
-        self.size = props.get("size") or Vector.zero()
+        self.width = props.get("width") or 0
+        self.height = props.get("height") or 0
         self.background_color = props.get("background_color") or None
 
     def draw(self, canvas: Canvas, offset) -> Rect:
-        width = self.size.x
-        height = self.size.y
         return pygame.draw.rect(
             canvas.buffer,
             self.background_color or canvas.background_color,
-            [0, offset, width, height],
+            [0, offset, self.width, self.height],
         )
 
-    def set_size(self, value: Vector) -> None:
-        self.size = value
-
     def set_width(self, value: float) -> None:
-        self.size = Vector(value, self.size.y)
+        self.width = value
 
     def set_height(self, value: float) -> None:
-        self.size = Vector(self.size.x, value)
-
-    def get_size(self) -> Vector:
-        return self.size
+        self.height = value
 
     def get_width(self) -> float:
-        return self.size.x
+        return self.width
 
     def get_height(self) -> float:
-        return self.size.y
+        return self.height
 
 
 # ============================================================
@@ -142,12 +134,14 @@ class Button(Box):
 
         if props is None:
             props = {
-                "size": DEFAULT_BUTTON_SIZE,
+                "width": DEFAULT_BUTTON_SIZE.x,
+                "height": DEFAULT_BUTTON_SIZE.y,
                 "background_color": colors["black"],
                 "color": colors["white"],
             }
 
-        self.size = props.get("size") or DEFAULT_BUTTON_SIZE
+        self.width = props.get("width") or DEFAULT_BUTTON_SIZE.x
+        self.height = props.get("height") or DEFAULT_BUTTON_SIZE.y
         self.background_color = props.get("background_color") or colors["black"]
         self.color = props.get("color") or colors["white"]
 
@@ -157,7 +151,7 @@ class Button(Box):
         font = pygame.font.SysFont("Free Sans", 32)
         text = font.render(self.name, True, self.color)
 
-        button_center = Vector(self.size.x / 2, self.size.y / 2)
+        button_center = Vector(self.width / 2, self.height / 2)
         text_center = Vector(text.get_width() / 2, text.get_height() / 2)
 
         text_rel_pos_x = button_center.x - text_center.x

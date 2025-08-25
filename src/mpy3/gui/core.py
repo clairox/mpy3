@@ -1,6 +1,6 @@
 import pygame
 
-from mpy3.gui.widgets import Box, Button, Canvas, Vector
+from mpy3.gui.widgets import Box, Button, Canvas
 
 
 class App:
@@ -10,7 +10,8 @@ class App:
         pause_button = Button("Pause")
         container = Box(
             {
-                "size": Vector(canvas.buffer.get_width(), 60),
+                "width": canvas.buffer.get_width(),
+                "height": 60,
                 "background_color": pygame.Color("gray"),
             }
         )
