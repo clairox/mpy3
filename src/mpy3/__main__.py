@@ -1,8 +1,8 @@
-from mpy3 import cli
+from mpy3.gui.core import App
 
 
 def main():
-    cli.main()
+    App().run()
 
 
 if __name__ == "__main__":
