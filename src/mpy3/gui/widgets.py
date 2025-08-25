@@ -1,4 +1,4 @@
-from typing import Optional, Self, TypedDict
+from typing import Literal, Optional, Self, TypedDict, Union
 
 import pygame
 from pygame import Color, Rect
@@ -19,6 +19,27 @@ class Vector:
 
     def __repr__(self) -> str:
         return f"Vector({self.x}, {self.y})"
+
+
+class Rectangle:
+    def __init__(self, *args) -> None:
+        if len(args) == 1:
+            value = args[0]
+            self.left = value
+            self.right = value
+            self.top = value
+            self.bottom = value
+
+        if len(args) == 4:
+            self.left, self.right, self.top, self.bottom = args
+
+    @classmethod
+    def zero(cls) -> Self:
+        return cls(0, 0, 0, 0)
+
+    def __repr__(self) -> str:
+        return f"Rectangle({self.left}, {self.right}, {self.top}, {self.bottom})"
+
 
 # ============================================================
 #  Widget
@@ -76,6 +97,14 @@ class Canvas:
 class BoxProps(WidgetProps, total=False):
     width: float
     height: float
+
+    border_size: int
+    border_left_size: int
+    border_right_size: int
+    border_top_size: int
+    border_bottom_size: int
+    border_color: Color
+
     background_color: Color
 
 
@@ -87,18 +116,89 @@ class Box(Widget):
         self._generate_id(self._class_name)
 
         if props is None:
-            props = {"width": 0, "height": 0}
+            props = {
+                "width": 0,
+                "height": 0,
+                "border_size": 0,
+                "border_color": colors["black"],
+            }
 
         self.width = props.get("width") or 0
         self.height = props.get("height") or 0
+
+        self.border_size = Rectangle(0)
+
+        border_size_prop = props.get("border_size")
+        if border_size_prop:
+            self.border_size = Rectangle(border_size_prop)
+
+        sides = ["left", "right", "top", "bottom"]
+
+        for side in sides:
+            prop = props.get(f"border_{side}_size")
+            if prop:
+                if side == "left":
+                    self.border_size.left = prop
+                elif side == "right":
+                    self.border_size.right = prop
+                elif side == "top":
+                    self.border_size.top = prop
+                elif side == "bottom":
+                    self.border_size.bottom = prop
+
+        self.border_color = props.get("border_color") or colors["black"]
         self.background_color = props.get("background_color") or None
 
+        self.bounds = None
+
     def draw(self, canvas: Canvas, offset) -> Rect:
-        return pygame.draw.rect(
+        # If there is a border, self.bounds will be parent to Box inner content
+        has_border = self.border_size != Rectangle.zero()
+
+        background_color = None
+        if has_border:
+            background_color = self.border_color
+        else:
+            background_color = self.background_color or canvas.background_color
+
+        self.bounds = pygame.draw.rect(
             canvas.buffer,
-            self.background_color or canvas.background_color,
+            background_color,
             [0, offset, self.width, self.height],
         )
+
+        if not has_border:
+            return self.bounds
+
+        # Box inner
+        inner_x = 0
+        inner_y = offset
+        inner_width = self.width
+        inner_height = self.height
+
+        if self.border_size.left:
+            size = self.border_size.left
+            inner_width -= size
+            inner_x += size
+
+        if self.border_size.right:
+            inner_width -= self.border_size.right
+
+        if self.border_size.top:
+            size = self.border_size.top
+            inner_height -= size
+            inner_y += size
+
+        if self.border_size.bottom:
+            inner_height -= self.border_size.bottom
+
+        pygame.draw.rect(
+            canvas.buffer,
+            self.background_color or canvas.background_color,
+            [inner_x, inner_y, inner_width, inner_height],
+        )
+
+        return self.bounds
 
     def set_width(self, value: float) -> None:
         self.width = value
@@ -148,7 +248,7 @@ class Button(Box):
         self.color = props.get("color") or colors["white"]
 
     def draw(self, canvas: Canvas, offset) -> Rect:
-        rect = super().draw(canvas, offset)
+        self.bounds = super().draw(canvas, offset)
 
         font = pygame.font.SysFont("Free Sans", 32)
         text = font.render(self.name, True, self.color)
@@ -161,9 +261,9 @@ class Button(Box):
         canvas.buffer.blit(
             text,
             [
-                rect.x + text_rel_pos_x,
-                rect.y + text_rel_pos_y,
+                self.bounds.x + text_rel_pos_x,
+                self.bounds.y + text_rel_pos_y,
             ],
         )
 
-        return rect
+        return self.bounds
