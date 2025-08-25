@@ -17,6 +17,8 @@ class Vector:
     def zero(cls) -> Self:
         return cls(0, 0)
 
+    def __repr__(self) -> str:
+        return f"Vector({self.x}, {self.y})"
 
 # ============================================================
 #  Widget
