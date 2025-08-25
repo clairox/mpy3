@@ -18,8 +18,13 @@ class Vector:
         return Vector(0, 0)
 
 
+# ============================================================
+#  Widget
+# ============================================================
+
+
 class WidgetProps(TypedDict, total=False):
-    position: Vector
+    pass
 
 
 class Widget:
@@ -31,24 +36,39 @@ class Widget:
         self._generate_id(self._class_name)
 
         if props is None:
-            props = {"position": Vector.zero()}
-
-        self.position = props.get("position") or Vector.zero()
+            props = {}
 
     def _generate_id(self, class_name: str):
         self.id = f"{class_name}_{generate_id()}" + generate_id()
 
-    def set_position(self, value: Vector):
-        self.position = value
 
-    def set_pos_x(self, value: float):
-        self.position = Vector(value, self.position.y)
+# ============================================================
+#  Canvas
+# ============================================================
 
-    def set_pos_y(self, value: float):
-        self.position = Vector(self.position.x, value)
 
-    def get_position(self):
-        return self.position
+class Canvas:
+    def __init__(self):
+        self.buffer = pygame.display.set_mode([1200, 700])
+        self.background_color = colors["white"]
+        self.children: list[Widget] = []
+
+    def update(self):
+        self.buffer.fill(self.background_color)
+
+        offset = 0
+        for widget in self.children:
+            if isinstance(widget, Box):
+                widget.draw(self, offset)
+                offset += widget.get_height()
+
+    def add_widget(self, widget: Widget):
+        self.children.append(widget)
+
+
+# ============================================================
+#  Box
+# ============================================================
 
 
 class BoxProps(WidgetProps, total=False):
@@ -66,11 +86,19 @@ class Box(Widget):
         if props is None:
             props = {
                 "size": Vector.zero(),
-                "position": Vector.zero(),
             }
 
         self.size = props.get("size") or Vector.zero()
         self.background_color = props.get("background_color") or None
+
+    def draw(self, canvas: Canvas, offset):
+        width = self.size.x
+        height = self.size.y
+        return pygame.draw.rect(
+            canvas.buffer,
+            self.background_color or canvas.background_color,
+            [0, offset, width, height],
+        )
 
     def set_size(self, value: Vector):
         self.size = value
@@ -89,6 +117,11 @@ class Box(Widget):
 
     def get_height(self):
         return self.size.y
+
+
+# ============================================================
+#  Button
+# ============================================================
 
 
 DEFAULT_BUTTON_SIZE = Vector(160, 70)
@@ -118,61 +151,23 @@ class Button(Box):
         self.background_color = props.get("background_color") or colors["black"]
         self.color = props.get("color") or colors["white"]
 
+    def draw(self, canvas: Canvas, offset):
+        rect = super().draw(canvas, offset)
 
-class Screen:
-    def __init__(self):
-        self.screen = pygame.display.set_mode([1200, 700])
-        self.background_color = colors["white"]
-        self.children: list[Widget] = []
+        font = pygame.font.SysFont("Free Sans", 32)
+        text = font.render(self.name, True, self.color)
 
-    def update(self):
-        self.screen.fill(self.background_color)
+        button_center = Vector(self.size.x / 2, self.size.y / 2)
+        text_center = Vector(text.get_width() / 2, text.get_height() / 2)
 
-        offset = 0
-        for widget in self.children:
-            if type(widget) is Box:
-                box = widget
+        text_rel_pos_x = button_center.x - text_center.x
+        text_rel_pos_y = button_center.y - text_center.y
+        canvas.buffer.blit(
+            text,
+            [
+                rect.x + text_rel_pos_x,
+                rect.y + text_rel_pos_y,
+            ],
+        )
 
-                width = box.get_width()
-                height = box.get_height()
-                pygame.draw.rect(
-                    self.screen,
-                    box.background_color or self.background_color,
-                    [0, offset, width, height],
-                )
-
-                offset += height
-
-            if type(widget) is Button:
-                button = widget
-
-                pos_x = 0
-                pos_y = offset
-                width = button.get_width()
-                height = button.get_height()
-                pygame.draw.rect(
-                    self.screen,
-                    button.background_color,
-                    [pos_x, pos_y, width, height],
-                )
-
-                offset += height
-
-                font = pygame.font.SysFont("Free Sans", 32)
-                text = font.render(button.name, True, button.color)
-
-                button_center = Vector(button.get_width() / 2, button.get_height() / 2)
-                text_center = Vector(text.get_width() / 2, text.get_height() / 2)
-
-                text_rel_pos_x = button_center.x - text_center.x
-                text_rel_pos_y = button_center.y - text_center.y
-                self.screen.blit(
-                    text,
-                    [
-                        pos_x + text_rel_pos_x,
-                        pos_y + text_rel_pos_y,
-                    ],
-                )
-
-    def add_widget(self, widget: Widget):
-        self.children.append(widget)
+        return rect
