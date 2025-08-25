@@ -4,7 +4,7 @@ from mpy3.gui.widgets import Box, Button, Canvas, Vector
 
 
 class App:
-    def run(self):
+    def run(self) -> None:
         canvas = Canvas()
         play_button = Button("Play")
         pause_button = Button("Pause")

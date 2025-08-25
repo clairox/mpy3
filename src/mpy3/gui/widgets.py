@@ -1,7 +1,7 @@
-from typing import Optional, TypedDict
+from typing import Optional, Self, TypedDict
 
 import pygame
-from pygame import Color
+from pygame import Color, Rect
 
 from mpy3.gui.utils import generate_id
 
@@ -9,13 +9,13 @@ colors = {"black": Color("#000000"), "white": Color("#ffffff")}
 
 
 class Vector:
-    def __init__(self, x: float, y: float):
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
 
     @classmethod
-    def zero(cls):
-        return Vector(0, 0)
+    def zero(cls) -> Self:
+        return cls(0, 0)
 
 
 # ============================================================
@@ -31,14 +31,14 @@ class Widget:
     def __init__(
         self,
         props: Optional[WidgetProps] = None,
-    ):
+    ) -> None:
         self._class_name = "Widget"
         self._generate_id(self._class_name)
 
         if props is None:
             props = {}
 
-    def _generate_id(self, class_name: str):
+    def _generate_id(self, class_name: str) -> None:
         self.id = f"{class_name}_{generate_id()}" + generate_id()
 
 
@@ -48,12 +48,12 @@ class Widget:
 
 
 class Canvas:
-    def __init__(self):
+    def __init__(self) -> None:
         self.buffer = pygame.display.set_mode([1200, 700])
         self.background_color = colors["white"]
         self.children: list[Widget] = []
 
-    def update(self):
+    def update(self) -> None:
         self.buffer.fill(self.background_color)
 
         offset = 0
@@ -62,7 +62,7 @@ class Canvas:
                 widget.draw(self, offset)
                 offset += widget.get_height()
 
-    def add_widget(self, widget: Widget):
+    def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
 
 
@@ -77,7 +77,7 @@ class BoxProps(WidgetProps, total=False):
 
 
 class Box(Widget):
-    def __init__(self, props: Optional[BoxProps] = None):
+    def __init__(self, props: Optional[BoxProps] = None) -> None:
         super().__init__(props)
 
         self._class_name = "Box"
@@ -91,7 +91,7 @@ class Box(Widget):
         self.size = props.get("size") or Vector.zero()
         self.background_color = props.get("background_color") or None
 
-    def draw(self, canvas: Canvas, offset):
+    def draw(self, canvas: Canvas, offset) -> Rect:
         width = self.size.x
         height = self.size.y
         return pygame.draw.rect(
@@ -100,22 +100,22 @@ class Box(Widget):
             [0, offset, width, height],
         )
 
-    def set_size(self, value: Vector):
+    def set_size(self, value: Vector) -> None:
         self.size = value
 
-    def set_width(self, value: float):
+    def set_width(self, value: float) -> None:
         self.size = Vector(value, self.size.y)
 
-    def set_height(self, value: float):
+    def set_height(self, value: float) -> None:
         self.size = Vector(self.size.x, value)
 
-    def get_size(self):
+    def get_size(self) -> Vector:
         return self.size
 
-    def get_width(self):
+    def get_width(self) -> float:
         return self.size.x
 
-    def get_height(self):
+    def get_height(self) -> float:
         return self.size.y
 
 
@@ -132,7 +132,7 @@ class ButtonProps(BoxProps, total=False):
 
 
 class Button(Box):
-    def __init__(self, name: str, props: Optional[ButtonProps] = None):
+    def __init__(self, name: str, props: Optional[ButtonProps] = None) -> None:
         super().__init__(props)
 
         self._class_name = "Button"
@@ -151,7 +151,7 @@ class Button(Box):
         self.background_color = props.get("background_color") or colors["black"]
         self.color = props.get("color") or colors["white"]
 
-    def draw(self, canvas: Canvas, offset):
+    def draw(self, canvas: Canvas, offset) -> Rect:
         rect = super().draw(canvas, offset)
 
         font = pygame.font.SysFont("Free Sans", 32)
