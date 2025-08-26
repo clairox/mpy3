@@ -33,6 +33,9 @@ class Rectangle:
         if len(args) == 4:
             self.left, self.right, self.top, self.bottom = args
 
+        self.x = self.left + self.right
+        self.y = self.top + self.bottom
+
     @classmethod
     def zero(cls) -> Self:
         return cls(0, 0, 0, 0)
@@ -162,13 +165,9 @@ class Box(Widget):
             child.height for child in self.children if isinstance(child, Box)
         )
 
-        if total_children_height > self.height:
+        if total_children_height > self.height - self.border_size.y:
             if has_border:
-                self.height = (
-                    total_children_height
-                    + self.border_size.top
-                    + self.border_size.bottom
-                )
+                self.height = total_children_height + self.border_size.y
             else:
                 self.height = total_children_height
 
