@@ -38,8 +38,7 @@ class App:
                         "child_alignment": "start",
                         "spacing": 6,
                         "padding_left": 18,
-                        "padding_top": 14,
-                        "padding_bottom": 14,
+                        "padding_vertical": 14,
                         "width": track_list_container.get_width(),
                         "border_bottom_size": 2,
                     }

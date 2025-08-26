@@ -21,6 +21,8 @@ class BoxProps(WidgetProps, total=False):
     padding_right: int
     padding_top: int
     padding_bottom: int
+    padding_horizontal: int
+    padding_vertical: int
 
     width: float
     height: float
@@ -63,7 +65,7 @@ class Box(Widget):
         if padding_prop:
             self.padding = Rectangle(padding_prop)
 
-        sides = ["left", "right", "top", "bottom"]
+        sides = ["left", "right", "top", "bottom", "horizontal", "vertical"]
 
         for side in sides:
             prop = props.get(f"padding_{side}")
@@ -75,6 +77,12 @@ class Box(Widget):
                 elif side == "top":
                     self.padding.top = prop
                 elif side == "bottom":
+                    self.padding.bottom = prop
+                elif side == "horizontal":
+                    self.padding.left = prop
+                    self.padding.right = prop
+                elif side == "vertical":
+                    self.padding.top = prop
                     self.padding.bottom = prop
 
         self.width = props.get("width") or 0
