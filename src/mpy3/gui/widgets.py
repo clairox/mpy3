@@ -270,9 +270,6 @@ class Box(Widget):
 
         self._resize_to_fit_children()
 
-        if alignment == "center":
-            parent_offset.y -= self.height / 2
-
         hierarchy = []
 
         has_border = self.border_size != Rectangle.zero()
@@ -291,8 +288,10 @@ class Box(Widget):
         offset = Vector(content_bounds.left, content_bounds.top)
         hierarchy.append(content_bounds)
 
+        box_children = [child for child in self.children if isinstance(child, Box)]
+        total_children_height = sum(child.height for child in box_children)
         if self.child_alignment == "center":
-            offset.y += content_bounds.height / 2
+            offset.y += content_bounds.height / 2 - total_children_height / 2
 
         self._draw_children(canvas, offset, cast(Alignment, self.child_alignment))
 
@@ -382,7 +381,7 @@ DEFAULT_FONT_SIZE = 26
 class TextProps(BoxProps, total=False):
     background_color: Color
     color: Color
-    font: str
+    font_family: str
     font_size: int
 
 
@@ -395,13 +394,17 @@ class Text(Box):
 
         self.value = value
 
-        font_name = props.get("font") or DEFAULT_FONT if props else DEFAULT_FONT
-        font_size = (
+        self.font_family = (
+            props.get("font_family") or DEFAULT_FONT if props else DEFAULT_FONT
+        )
+        self.font_size = (
             props.get("font_size") or DEFAULT_FONT_SIZE if props else DEFAULT_FONT_SIZE
         )
-        font_color = props.get("color") or colors["black"] if props else colors["black"]
-        font = pygame.font.SysFont(font_name, font_size)
-        self.text = font.render(self.value, True, font_color)
+        self.font_color = (
+            props.get("color") or colors["black"] if props else colors["black"]
+        )
+
+        self._render_text()
 
         defaults = {
             "width": self.text.get_width(),
@@ -427,6 +430,16 @@ class Text(Box):
         canvas.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
 
         return self.bounds
+
+    def _render_text(self) -> None:
+        font = pygame.font.SysFont(self.font_family, self.font_size)
+        self.text = font.render(self.value, True, self.font_color)
+        self.width = self.text.get_width()
+        self.height = self.text.get_height()
+
+    def set_value(self, value: str) -> None:
+        self.value = value
+        self._render_text()
 
 
 # ============================================================
