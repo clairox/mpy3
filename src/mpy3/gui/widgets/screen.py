@@ -11,7 +11,7 @@ from mpy3.gui.widgets.types import Alignment
 class Screen:
     def __init__(self) -> None:
         self.buffer = pygame.display.set_mode([1200, 700])
-        self.background_color = colors["white"]
+        self.background_color = colors["background"]
         self.children: list[Widget] = []
 
     def update(self) -> None:

@@ -51,7 +51,7 @@ class Box(Widget):
                 "width": 0,
                 "height": 0,
                 "border_size": 0,
-                "border_color": colors["black"],
+                "border_color": colors["foreground"],
             }
 
         self.distribution = props.get("distribution") or "center"
@@ -99,7 +99,7 @@ class Box(Widget):
                 elif side == "bottom":
                     self.border_size.bottom = prop
 
-        self.border_color = props.get("border_color") or colors["black"]
+        self.border_color = props.get("border_color") or colors["foreground"]
         self.background_color = props.get("background_color") or None
 
         self.bounds = None

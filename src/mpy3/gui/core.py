@@ -35,11 +35,11 @@ class App:
             for media in self.media_list:
                 track_list_item = Box(
                     {
-                        "child_alignment": "center",
+                        "child_alignment": "start",
                         "spacing": 6,
-                        "padding_left": 14,
-                        "padding_top": 10,
-                        "padding_bottom": 10,
+                        "padding_left": 18,
+                        "padding_top": 14,
+                        "padding_bottom": 14,
                         "width": track_list_container.get_width(),
                         "border_bottom_size": 2,
                     }

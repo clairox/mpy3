@@ -37,7 +37,9 @@ class Text(Box):
             props.get("font_size") or DEFAULT_FONT_SIZE if props else DEFAULT_FONT_SIZE
         )
         self.font_color = (
-            props.get("color") or colors["black"] if props else colors["black"]
+            props.get("color") or colors["foreground"]
+            if props
+            else colors["foreground"]
         )
 
         self._render_text()
@@ -45,8 +47,8 @@ class Text(Box):
         defaults = {
             "width": self.text.get_width(),
             "height": self.text.get_height(),
-            "background_color": colors["white"],
-            "color": colors["black"],
+            "background_color": colors["background"],
+            "color": colors["foreground"],
         }
 
         if props is None:
