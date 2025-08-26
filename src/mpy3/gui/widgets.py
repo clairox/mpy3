@@ -61,6 +61,8 @@ class Widget:
         if props is None:
             props = {}
 
+        self.children: list[Widget] = []
+
     def _generate_id(self, class_name: str) -> None:
         self.id = f"{class_name}_{generate_id()}" + generate_id()
 
@@ -79,11 +81,11 @@ class Canvas:
     def update(self) -> None:
         self.buffer.fill(self.background_color)
 
-        offset = 0
+        offset = Vector(0, 0)
         for widget in self.children:
             if isinstance(widget, Box):
                 widget.draw(self, offset)
-                offset += widget.get_height()
+                offset.y += widget.get_height()
 
     def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
@@ -151,9 +153,24 @@ class Box(Widget):
 
         self.bounds = None
 
-    def draw(self, canvas: Canvas, offset) -> Rect:
+    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
+
         # If there is a border, self.bounds will be parent to Box inner content
         has_border = self.border_size != Rectangle.zero()
+
+        total_children_height = sum(
+            child.height for child in self.children if isinstance(child, Box)
+        )
+
+        if total_children_height > self.height:
+            if has_border:
+                self.height = (
+                    total_children_height
+                    + self.border_size.top
+                    + self.border_size.bottom
+                )
+            else:
+                self.height = total_children_height
 
         background_color = None
         if has_border:
@@ -164,15 +181,17 @@ class Box(Widget):
         self.bounds = pygame.draw.rect(
             canvas.buffer,
             background_color,
-            [0, offset, self.width, self.height],
+            [parent_offset.x, parent_offset.y, self.width, self.height],
         )
 
         if not has_border:
+            offset = Vector(self.bounds.left, self.bounds.right)
+            self._draw_children(canvas, offset)
             return self.bounds
 
         # Box inner
-        inner_x = 0
-        inner_y = offset
+        inner_x = parent_offset.x
+        inner_y = parent_offset.y
         inner_width = self.width
         inner_height = self.height
 
@@ -192,13 +211,27 @@ class Box(Widget):
         if self.border_size.bottom:
             inner_height -= self.border_size.bottom
 
-        pygame.draw.rect(
+        background_color = self.background_color or canvas.background_color
+
+        inner_bounds = pygame.draw.rect(
             canvas.buffer,
-            self.background_color or canvas.background_color,
+            background_color,
             [inner_x, inner_y, inner_width, inner_height],
         )
 
+        offset = Vector(inner_bounds.left, inner_bounds.top)
+        self._draw_children(canvas, offset)
+
         return self.bounds
+
+    def _draw_children(self, canvas: Canvas, offset: Vector):
+        _offset = offset
+        for child in [item for item in self.children if isinstance(item, Box)]:
+            rect = child.draw(canvas, _offset)
+            _offset.y += rect.height
+
+    def add_widget(self, widget: Widget) -> None:
+        self.children.append(widget)
 
     def set_width(self, value: float) -> None:
         self.width = value
@@ -247,8 +280,8 @@ class Button(Box):
         self.background_color = props.get("background_color") or colors["black"]
         self.color = props.get("color") or colors["white"]
 
-    def draw(self, canvas: Canvas, offset) -> Rect:
-        self.bounds = super().draw(canvas, offset)
+    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
+        self.bounds = super().draw(canvas, parent_offset)
 
         font = pygame.font.SysFont("Free Sans", 32)
         text = font.render(self.name, True, self.color)
