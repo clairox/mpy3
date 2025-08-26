@@ -1,10 +1,10 @@
-import os
 from pathlib import Path
 
 import pygame
-from pygame import Color
 
-from mpy3.gui.widgets import Box, Button, Canvas, Text
+from mpy3.gui.widgets.box import Box
+from mpy3.gui.widgets.canvas import Canvas
+from mpy3.gui.widgets.text import Text
 from mpy3.player import Media
 
 
