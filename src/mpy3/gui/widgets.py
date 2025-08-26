@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Self, TypedDict, Union, cast
+from typing import Literal, Optional, Self, TypedDict, Union, cast, overload
 
 import pygame
 from pygame import Color, Rect
@@ -288,7 +288,7 @@ class Box(Widget):
         offset = Vector(content_bounds.left, content_bounds.top)
         hierarchy.append(content_bounds)
 
-        box_children = [child for child in self.children if isinstance(child, Box)]
+        box_children = self._get_renderable_children()
         total_children_height = sum(child.height for child in box_children)
         if self.child_alignment == "center":
             offset.y += content_bounds.height / 2 - total_children_height / 2
@@ -300,7 +300,7 @@ class Box(Widget):
 
     def _resize_to_fit_children(self) -> None:
         total_children_width, total_children_height = [0, 0]
-        box_children = [child for child in self.children if isinstance(child, Box)]
+        box_children = self._get_renderable_children()
         total_children_width = sum(child.width for child in box_children)
         total_children_height = sum(child.height for child in box_children)
 
@@ -350,9 +350,12 @@ class Box(Widget):
         self, canvas: Canvas, offset: Vector, alignment: Alignment = "start"
     ):
         _offset = offset
-        for child in [item for item in self.children if isinstance(item, Box)]:
+        for child in self._get_renderable_children():
             rect = child.draw(canvas, _offset, alignment)
             _offset.y += rect.height
+
+    def _get_renderable_children(self) -> list[Self]:
+        return [cast(Self, child) for child in self.children if isinstance(child, Box)]
 
     def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
