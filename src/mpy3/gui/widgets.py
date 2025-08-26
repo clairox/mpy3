@@ -25,16 +25,60 @@ class Rectangle:
     def __init__(self, *args) -> None:
         if len(args) == 1:
             value = args[0]
-            self.left = value
-            self.right = value
-            self.top = value
-            self.bottom = value
+            self._left = value
+            self._right = value
+            self._top = value
+            self._bottom = value
 
         if len(args) == 4:
-            self.left, self.right, self.top, self.bottom = args
+            self._left, self._right, self._top, self._bottom = args
 
-        self.x = self.left + self.right
-        self.y = self.top + self.bottom
+        self._x = self._left + self._right
+        self._y = self._top + self._bottom
+
+    @property
+    def left(self):
+        return self._left
+
+    @property
+    def right(self):
+        return self._right
+
+    @property
+    def top(self):
+        return self._top
+
+    @property
+    def bottom(self):
+        return self._bottom
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @left.setter
+    def left(self, value: int) -> None:
+        self._left = value
+        self._x = self._left + self._right
+
+    @right.setter
+    def right(self, value: int) -> None:
+        self._right = value
+        self._x = self._left + self._right
+
+    @top.setter
+    def top(self, value: int) -> None:
+        self._top = value
+        self._y = self._top + self._bottom
+
+    @bottom.setter
+    def bottom(self, value: int) -> None:
+        self._bottom = value
+        self._y = self._top + self._bottom
 
     @classmethod
     def zero(cls) -> Self:
