@@ -1,3 +1,4 @@
+import json
 import subprocess
 import threading
 import time
@@ -11,6 +12,31 @@ CHUNK = 1024
 class Media:
     def __init__(self, mrl: Path) -> None:
         self.mrl = mrl
+        self.title = mrl.name
+        self.meta = None
+
+    def parse_meta(self):
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format_tags",
+                "-of",
+                "json",
+                str(self.mrl),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        meta_json = result.stdout
+        self.meta = dict(json.loads(meta_json).get("format", {}).get("tags", {}))
+
+        if self.meta and self.meta["title"]:
+            self.title = self.meta["title"]
 
 
 class MediaPlayer:
