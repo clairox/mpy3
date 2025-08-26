@@ -4,6 +4,7 @@ import pygame
 
 from mpy3.gui.widgets.box import Box
 from mpy3.gui.widgets.canvas import Canvas
+from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.text import Text
 from mpy3.player import Media
 
@@ -22,13 +23,14 @@ class App:
 
     def run(self) -> None:
         pygame.init()
-        canvas = Canvas()
+        screen = Screen()
+        canvas = Canvas(screen)
         clock = pygame.time.Clock()
 
         if len(self.media_list) == 0:
             canvas.add_widget(Text("No music"))
         else:
-            track_list_container = Box({"width": canvas.buffer.get_width()})
+            track_list_container = Box({"width": canvas.get_width()})
 
             for media in self.media_list:
                 track_list_item = Box(
@@ -59,7 +61,7 @@ class App:
                 if event.type == pygame.QUIT:
                     running = False
 
-            canvas.update()
+            screen.update()
 
             pygame.display.flip()
             clock.tick(60)

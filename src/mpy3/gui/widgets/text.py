@@ -5,9 +5,10 @@ from pygame import Color
 from pygame import Rect as PGRect
 
 from mpy3.gui.colors import colors
-from mpy3.gui.widgets.box import Alignment, Box, BoxProps
-from mpy3.gui.widgets.canvas import Canvas
+from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.geometry import Vector
+from mpy3.gui.widgets.screen import Screen
+from mpy3.gui.widgets.types import Alignment
 
 DEFAULT_FONT = "Free Sans"
 DEFAULT_FONT_SIZE = 26
@@ -59,10 +60,10 @@ class Text(Box):
         self.color = props.get("color") or defaults["color"]
 
     def draw(
-        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+        self, screen: Screen, parent_offset: Vector, alignment: Alignment = "start"
     ) -> PGRect:
-        self.bounds = super().draw(canvas, parent_offset, alignment)
-        canvas.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
+        self.bounds = super().draw(screen, parent_offset, alignment)
+        screen.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
 
         return self.bounds
 

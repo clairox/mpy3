@@ -6,12 +6,9 @@ from pygame import Rect as PGRect
 
 from mpy3.gui.colors import colors
 from mpy3.gui.widgets.base import Widget, WidgetProps
-from mpy3.gui.widgets.canvas import Canvas
 from mpy3.gui.widgets.geometry import Rectangle, Vector
-
-Distribution = Literal["start", "end", "center", "between"]
-
-Alignment = Literal["start", "end", "center"]
+from mpy3.gui.widgets.screen import Screen
+from mpy3.gui.widgets.types import Alignment, Distribution
 
 
 class BoxProps(WidgetProps, total=False):
@@ -105,7 +102,7 @@ class Box(Widget):
         self.bounds = None
 
     def draw(
-        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+        self, screen: Screen, parent_offset: Vector, alignment: Alignment = "start"
     ) -> PGRect:
         offset = parent_offset
 
@@ -116,24 +113,24 @@ class Box(Widget):
 
         has_border = self.border_size != Rectangle.zero()
         if has_border:
-            border_bounds = self._draw_border(canvas, offset)
+            border_bounds = self._draw_border(screen, offset)
             offset = parent_offset + Vector(self.border_size.left, self.border_size.top)
             hierarchy.append(border_bounds)
 
         has_padding = self.padding != Rectangle.zero()
         if has_padding:
-            padding_bounds = self._draw_padding(canvas, offset)
+            padding_bounds = self._draw_padding(screen, offset)
             offset = parent_offset + Vector(self.padding.left, self.padding.top)
             hierarchy.append(padding_bounds)
 
-        content_bounds = self._draw_content(canvas, offset)
+        content_bounds = self._draw_content(screen, offset)
         offset = Vector(content_bounds.left, content_bounds.top)
         hierarchy.append(content_bounds)
 
         if self.child_alignment == "center":
             offset.y += content_bounds.height / 2 - children_height / 2
 
-        self._draw_children(canvas, offset, cast(Alignment, self.child_alignment))
+        self._draw_children(screen, offset, cast(Alignment, self.child_alignment))
 
         self.bounds = hierarchy[0]
         return self.bounds
@@ -148,29 +145,29 @@ class Box(Widget):
         if height > content_height:
             self.height = height + self.border_size.y + self.padding.y
 
-    def _draw_border(self, canvas: Canvas, parent_offset: Vector) -> PGRect:
+    def _draw_border(self, screen: Screen, parent_offset: Vector) -> PGRect:
         background_color = self.border_color
 
         return pygame.draw.rect(
-            canvas.buffer,
+            screen.buffer,
             background_color,
             [parent_offset.x, parent_offset.y, self.width, self.height],
         )
 
-    def _draw_padding(self, canvas: Canvas, parent_offset: Vector):
-        background_color = self.background_color or canvas.background_color
+    def _draw_padding(self, screen: Screen, parent_offset: Vector):
+        background_color = self.background_color or screen.background_color
 
         width = self.width - self.border_size.x
         height = self.height - self.border_size.y
 
         return pygame.draw.rect(
-            canvas.buffer,
+            screen.buffer,
             background_color,
             [parent_offset.x, parent_offset.y, width, height],
         )
 
-    def _draw_content(self, canvas: Canvas, parent_offset: Vector) -> PGRect:
-        background_color = self.background_color or canvas.background_color
+    def _draw_content(self, screen: Screen, parent_offset: Vector) -> PGRect:
+        background_color = self.background_color or screen.background_color
 
         offset_x = parent_offset.x
         offset_y = parent_offset.y
@@ -178,17 +175,17 @@ class Box(Widget):
         height = self.height - self.border_size.y - self.padding.y
 
         return pygame.draw.rect(
-            canvas.buffer,
+            screen.buffer,
             background_color,
             [offset_x, offset_y, width, height],
         )
 
     def _draw_children(
-        self, canvas: Canvas, offset: Vector, alignment: Alignment = "start"
+        self, screen: Screen, offset: Vector, alignment: Alignment = "start"
     ):
         _offset = offset
         for child in self._get_renderable_children():
-            rect = child.draw(canvas, _offset, alignment)
+            rect = child.draw(screen, _offset, alignment)
             _offset.y += rect.height
 
     def _get_renderable_children(self) -> list[Self]:

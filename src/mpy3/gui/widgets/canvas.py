@@ -1,25 +1,21 @@
-import pygame
+from typing import Optional
 
 from mpy3.gui.colors import colors
-from mpy3.gui.widgets.base import Widget
-from mpy3.gui.widgets.box import Box
-from mpy3.gui.widgets.geometry import Vector
+from mpy3.gui.widgets.box import Box, BoxProps
+from mpy3.gui.widgets.screen import Screen
 
 
-class Canvas:
-    def __init__(self) -> None:
-        self.buffer = pygame.display.set_mode([1200, 700])
-        self.background_color = colors["white"]
-        self.children: list[Widget] = []
+class CanvasProps(BoxProps, total=False):
+    pass
 
-    def update(self) -> None:
-        self.buffer.fill(self.background_color)
 
-        offset = Vector(0, 0)
-        for widget in self.children:
-            if isinstance(widget, Box):
-                widget.draw(self, offset, "start")
-                offset.y += widget.get_height()
+class Canvas(Box):
+    def __init__(self, screen: Screen, props: Optional[CanvasProps] = None) -> None:
+        super().__init__(props)
 
-    def add_widget(self, widget: Widget) -> None:
-        self.children.append(widget)
+        self.width = screen.buffer.get_width()
+        self.height = screen.buffer.get_height()
+
+        self.background_color = screen.background_color
+
+        screen.add_widget(self)

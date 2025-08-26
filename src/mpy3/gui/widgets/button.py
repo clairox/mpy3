@@ -5,9 +5,10 @@ from pygame import Color
 from pygame import Rect as PGRect
 
 from mpy3.gui.colors import colors
-from mpy3.gui.widgets.box import Alignment, Box, BoxProps
-from mpy3.gui.widgets.canvas import Canvas
+from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.geometry import Vector
+from mpy3.gui.widgets.screen import Screen
+from mpy3.gui.widgets.types import Alignment
 
 DEFAULT_BUTTON_SIZE = Vector(160, 70)
 
@@ -39,9 +40,9 @@ class Button(Box):
         self.color = props.get("color") or colors["white"]
 
     def draw(
-        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+        self, screen: Screen, parent_offset: Vector, alignment: Alignment = "start"
     ) -> PGRect:
-        self.bounds = super().draw(canvas, parent_offset, alignment)
+        self.bounds = super().draw(screen, parent_offset, alignment)
 
         font = pygame.font.SysFont("Free Sans", 32)
         text = font.render(self.name, True, self.color)
@@ -51,7 +52,7 @@ class Button(Box):
 
         text_rel_pos_x = button_center.x - text_center.x
         text_rel_pos_y = button_center.y - text_center.y
-        canvas.buffer.blit(
+        screen.buffer.blit(
             text,
             [
                 self.bounds.x + text_rel_pos_x,
