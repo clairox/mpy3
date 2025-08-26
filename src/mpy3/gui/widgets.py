@@ -290,8 +290,6 @@ class Text(Box):
         )
         self.color = props.get("color") or defaults["color"]
 
-        print(self.height)
-
     def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
         self.bounds = super().draw(canvas, parent_offset)
         canvas.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
