@@ -40,7 +40,7 @@ class App:
                     {
                         "child_alignment": "center",
                         "width": track_list_container.get_width(),
-                        "height": 60,
+                        "height": 64,
                         "border_bottom_size": 2,
                     }
                 )

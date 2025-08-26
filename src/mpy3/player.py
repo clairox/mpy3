@@ -12,7 +12,7 @@ CHUNK = 1024
 class Media:
     def __init__(self, mrl: Path) -> None:
         self.mrl = mrl
-        self.title = mrl.name
+        self.title = mrl.stem
         self.meta = None
 
     def parse_meta(self):
