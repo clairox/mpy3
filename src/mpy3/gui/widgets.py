@@ -269,7 +269,7 @@ class Box(Widget):
         offset = parent_offset
 
         children_width, children_height = self._calculate_children_dimensions()
-        self._resize_to_fit_children(children_width, children_height)
+        self._resize_to_fit_dimensions(children_width, children_height)
 
         hierarchy = []
 
@@ -297,17 +297,15 @@ class Box(Widget):
         self.bounds = hierarchy[0]
         return self.bounds
 
-    def _resize_to_fit_children(
-        self, children_width: float, children_height: float
-    ) -> None:
+    def _resize_to_fit_dimensions(self, width: float, height: float) -> None:
         content_width = self.width - self.border_size.x - self.padding.x
         content_height = self.height - self.border_size.y - self.padding.y
 
-        if children_width > content_width:
-            self.width = children_width + self.border_size.x + self.padding.x
+        if width > content_width:
+            self.width = width + self.border_size.x + self.padding.x
 
-        if children_height > content_height:
-            self.height = children_height + self.border_size.y + self.padding.y
+        if height > content_height:
+            self.height = height + self.border_size.y + self.padding.y
 
     def _draw_border(self, canvas: Canvas, parent_offset: Vector) -> Rect:
         background_color = self.border_color
