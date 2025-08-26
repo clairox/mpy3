@@ -36,6 +36,7 @@ class App:
                 track_list_item = Box(
                     {
                         "child_alignment": "center",
+                        "spacing": 6,
                         "padding_left": 14,
                         "padding_top": 10,
                         "padding_bottom": 10,

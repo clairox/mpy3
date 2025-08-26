@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Self, cast
+from typing import Optional, Self, cast
 
 import pygame
 from pygame import Color
@@ -14,6 +14,7 @@ from mpy3.gui.widgets.types import Alignment, Distribution
 class BoxProps(WidgetProps, total=False):
     distribution: Distribution
     child_alignment: Alignment
+    spacing: int
 
     padding: int
     padding_left: int
@@ -45,6 +46,7 @@ class Box(Widget):
             props = {
                 "distribution": "center",
                 "child_alignment": "start",
+                "spacing": 0,
                 "padding": 0,
                 "width": 0,
                 "height": 0,
@@ -54,6 +56,7 @@ class Box(Widget):
 
         self.distribution = props.get("distribution") or "center"
         self.child_alignment = props.get("child_alignment") or "start"
+        self.spacing = props.get("spacing") or 0
 
         self.padding = Rectangle(0)
         padding_prop = props.get("padding")
@@ -184,17 +187,22 @@ class Box(Widget):
         self, screen: Screen, offset: Vector, alignment: Alignment = "start"
     ):
         _offset = offset
-        for child in self._get_renderable_children():
+        rendered_children = self._get_renderable_children()
+        for i, child in enumerate(rendered_children):
             rect = child.draw(screen, _offset, alignment)
             _offset.y += rect.height
+
+            if i < len(rendered_children) - 1:
+                _offset.y += self.spacing
 
     def _get_renderable_children(self) -> list[Self]:
         return [cast(Self, child) for child in self.children if isinstance(child, Box)]
 
     def _calculate_children_dimensions(self) -> list[float]:
         rendered_children = self._get_renderable_children()
-        width = sum(child.width for child in rendered_children)
-        height = sum(child.height for child in rendered_children)
+        spacing_size = self.spacing * (len(rendered_children) - 1)
+        width = sum(child.width for child in rendered_children) + spacing_size
+        height = sum(child.height for child in rendered_children) + spacing_size
 
         return [width, height]
 

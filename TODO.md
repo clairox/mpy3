@@ -1,4 +1,4 @@
 # Todos
 
-- [ ] Add child spacing
+- [ ] Add full width and height
 - [ ] Try ChainMap for props
