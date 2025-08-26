@@ -1,10 +1,15 @@
 import random
 import string
-from typing import Optional, TypedDict
+from dataclasses import asdict, dataclass, fields, is_dataclass
+from typing import Any, Mapping, Optional, Type, TypeVar
+
+T = TypeVar("T")
 
 
-class WidgetProps(TypedDict, total=False):
-    pass
+@dataclass
+class WidgetProps:
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
 
 
 class Widget:
@@ -12,13 +17,31 @@ class Widget:
         self,
         props: Optional[WidgetProps] = None,
     ) -> None:
+        props = self._init_props(WidgetProps, props)
+
         self._class_name = "Widget"
         self._generate_id(self._class_name)
 
-        if props is None:
-            props = {}
-
         self.children: list[Widget] = []
+
+    def _init_props(self, C: Type[T], props: Optional[Any] = None) -> T:
+        if not is_dataclass(C):
+            raise TypeError("C must be a dataclass")
+
+        if props is None:
+            return C()
+
+        if is_dataclass(props) and not isinstance(props, type):
+            raw_props = asdict(props)
+        elif isinstance(props, Mapping):
+            raw_props = dict(props)
+        else:
+            raise TypeError("props must be a dataclass instance or mapping")
+
+        valid_fields = {f.name for f in fields(C)}
+        str_fields = {k: v for k, v in raw_props.items() if k in valid_fields}
+
+        return C(**str_fields) if props else C()
 
     def _generate_id(self, class_name: str) -> None:
         unique_string = "".join(

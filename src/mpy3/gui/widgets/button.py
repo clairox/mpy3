@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Optional
 
 import pygame
@@ -13,31 +14,26 @@ from mpy3.gui.widgets.types import Alignment
 DEFAULT_BUTTON_SIZE = Vector(160, 70)
 
 
-class ButtonProps(BoxProps, total=False):
-    color: Color
+@dataclass
+class ButtonProps(BoxProps):
+    color: Color = field(default_factory=lambda: colors["white"])
 
 
 class Button(Box):
     def __init__(self, name: str, props: Optional[ButtonProps] = None) -> None:
         super().__init__(props)
 
+        props = self._init_props(ButtonProps, props)
+
         self._class_name = "Button"
         self._generate_id(self._class_name)
 
         self.name = name
 
-        if props is None:
-            props = {
-                "width": DEFAULT_BUTTON_SIZE.x,
-                "height": DEFAULT_BUTTON_SIZE.y,
-                "background_color": colors["black"],
-                "color": colors["white"],
-            }
-
-        self.width = props.get("width") or DEFAULT_BUTTON_SIZE.x
-        self.height = props.get("height") or DEFAULT_BUTTON_SIZE.y
-        self.background_color = props.get("background_color") or colors["black"]
-        self.color = props.get("color") or colors["white"]
+        self.width = props.width
+        self.height = props.height
+        self.background_color = colors["black"]
+        self.color = props.color
 
     def draw(
         self, screen: Screen, parent_offset: Vector, alignment: Alignment = "start"

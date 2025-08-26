@@ -1,11 +1,12 @@
+from dataclasses import dataclass
 from typing import Optional
 
-from mpy3.gui.colors import colors
 from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.screen import Screen
 
 
-class CanvasProps(BoxProps, total=False):
+@dataclass
+class CanvasProps(BoxProps):
     pass
 
 

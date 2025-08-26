@@ -1,4 +1,5 @@
-from typing import Optional, cast
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 import pygame
 from pygame import Color
@@ -14,15 +15,19 @@ DEFAULT_FONT = "Free Sans"
 DEFAULT_FONT_SIZE = 26
 
 
-class TextProps(BoxProps, total=False):
-    background_color: Color
-    color: Color
-    font_family: str
-    font_size: int
+@dataclass
+class TextProps(BoxProps):
+    background_color: Color = field(default_factory=lambda: colors["background"])
+    color: Color = field(default_factory=lambda: colors["foreground"])
+    font_family: str = DEFAULT_FONT
+    font_size: int = DEFAULT_FONT_SIZE
 
 
 class Text(Box):
-    def __init__(self, value: str, props: Optional[TextProps] = None) -> None:
+    def __init__(
+        self, value: str, props: Optional[TextProps | dict[str, Any]] = None
+    ) -> None:
+        props = self._init_props(TextProps, props)
         super().__init__(props)
 
         self._class_name = "Text"
@@ -30,36 +35,12 @@ class Text(Box):
 
         self.value = value
 
-        self.font_family = (
-            props.get("font_family") or DEFAULT_FONT if props else DEFAULT_FONT
-        )
-        self.font_size = (
-            props.get("font_size") or DEFAULT_FONT_SIZE if props else DEFAULT_FONT_SIZE
-        )
-        self.font_color = (
-            props.get("color") or colors["foreground"]
-            if props
-            else colors["foreground"]
-        )
+        self.font_family = props.font_family
+        self.font_size = props.font_size
+        self.color = props.color
+        self.background_color = props.background_color
 
         self._render_text()
-
-        defaults = {
-            "width": self.text.get_width(),
-            "height": self.text.get_height(),
-            "background_color": colors["background"],
-            "color": colors["foreground"],
-        }
-
-        if props is None:
-            props = cast(TextProps, defaults)
-
-        self.width = props.get("width") or defaults["width"]
-        self.height = props.get("height") or defaults["height"]
-        self.background_color = (
-            props.get("background_color") or defaults["background_color"]
-        )
-        self.color = props.get("color") or defaults["color"]
 
     def draw(
         self, screen: Screen, parent_offset: Vector, alignment: Alignment = "start"
@@ -71,7 +52,7 @@ class Text(Box):
 
     def _render_text(self) -> None:
         font = pygame.font.SysFont(self.font_family, self.font_size)
-        self.text = font.render(self.value, True, self.font_color)
+        self.text = font.render(self.value, True, self.color)
         self.width = self.text.get_width()
         self.height = self.text.get_height()
 

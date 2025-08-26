@@ -1,8 +1,9 @@
+from dataclasses import dataclass, field
 from typing import Optional, Self, cast
 
 import pygame
-from pygame import Color
 from pygame import Rect as PGRect
+from pygame.color import Color
 
 from mpy3.gui.colors import colors
 from mpy3.gui.widgets.base import Widget, WidgetProps
@@ -11,64 +12,59 @@ from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.types import Alignment, Distribution
 
 
-class BoxProps(WidgetProps, total=False):
-    distribution: Distribution
-    child_alignment: Alignment
-    spacing: int
+@dataclass
+class BoxProps(WidgetProps):
+    distribution: Distribution = "center"
+    child_alignment: Alignment = "start"
+    spacing: int = 0
 
-    padding: int
-    padding_left: int
-    padding_right: int
-    padding_top: int
-    padding_bottom: int
-    padding_horizontal: int
-    padding_vertical: int
+    padding: int = 0
+    padding_left: int = 0
+    padding_right: int = 0
+    padding_top: int = 0
+    padding_bottom: int = 0
+    padding_horizontal: int = 0
+    padding_vertical: int = 0
 
-    width: float
-    height: float
+    width: float = 0
+    height: float = 0
 
-    border_size: int
-    border_left_size: int
-    border_right_size: int
-    border_top_size: int
-    border_bottom_size: int
-    border_color: Color
+    border_size: int = 0
+    border_left_size: int = 0
+    border_right_size: int = 0
+    border_top_size: int = 0
+    border_bottom_size: int = 0
+    border_color: Color = field(default_factory=lambda: colors["foreground"])
 
-    background_color: Color
+    background_color: Color = field(default_factory=lambda: colors["background"])
 
 
 class Box(Widget):
     def __init__(self, props: Optional[BoxProps] = None) -> None:
         super().__init__(props)
 
+        props = self._init_props(BoxProps, props)
+
         self._class_name = "Box"
         self._generate_id(self._class_name)
 
-        if props is None:
-            props = {
-                "distribution": "center",
-                "child_alignment": "start",
-                "spacing": 0,
-                "padding": 0,
-                "width": 0,
-                "height": 0,
-                "border_size": 0,
-                "border_color": colors["foreground"],
-            }
-
-        self.distribution = props.get("distribution") or "center"
-        self.child_alignment = props.get("child_alignment") or "start"
-        self.spacing = props.get("spacing") or 0
+        self.distribution = props.distribution
+        self.child_alignment = props.child_alignment
+        self.spacing = props.spacing
+        self.width = props.width
+        self.height = props.height
+        self.border_color = props.border_color
+        self.background_color = props.background_color
 
         self.padding = Rectangle(0)
-        padding_prop = props.get("padding")
+        padding_prop = props.padding
         if padding_prop:
             self.padding = Rectangle(padding_prop)
 
         sides = ["left", "right", "top", "bottom", "horizontal", "vertical"]
 
         for side in sides:
-            prop = props.get(f"padding_{side}")
+            prop = props[f"padding_{side}"]
             if prop:
                 if side == "left":
                     self.padding.left = prop
@@ -85,18 +81,15 @@ class Box(Widget):
                     self.padding.top = prop
                     self.padding.bottom = prop
 
-        self.width = props.get("width") or 0
-        self.height = props.get("height") or 0
-
         self.border_size = Rectangle(0)
-        border_size_prop = props.get("border_size")
+        border_size_prop = props.border_size
         if border_size_prop:
             self.border_size = Rectangle(border_size_prop)
 
         sides = ["left", "right", "top", "bottom"]
 
         for side in sides:
-            prop = props.get(f"border_{side}_size")
+            prop = props[f"border_{side}_size"]
             if prop:
                 if side == "left":
                     self.border_size.left = prop
@@ -106,9 +99,6 @@ class Box(Widget):
                     self.border_size.top = prop
                 elif side == "bottom":
                     self.border_size.bottom = prop
-
-        self.border_color = props.get("border_color") or colors["foreground"]
-        self.background_color = props.get("background_color") or None
 
         self.bounds = None
 
