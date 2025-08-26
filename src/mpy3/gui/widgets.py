@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Self, TypedDict, Union
+from typing import Literal, Optional, Self, TypedDict, Union, cast
 
 import pygame
 from pygame import Color, Rect
@@ -243,6 +243,60 @@ class Box(Widget):
 
     def get_height(self) -> float:
         return self.height
+
+
+# ============================================================
+#  Text
+# ============================================================
+
+DEFAULT_FONT = "Free Sans"
+
+
+class TextProps(BoxProps, total=False):
+    background_color: Color
+    color: Color
+    font: str
+    font_size: float
+
+
+class Text(Box):
+    def __init__(self, value: str, props: Optional[TextProps] = None) -> None:
+        super().__init__(props)
+
+        self._class_name = "Text"
+        self._generate_id(self._class_name)
+
+        self.value = value
+
+        font_name = props.get("font") or DEFAULT_FONT if props else DEFAULT_FONT
+        font_color = props.get("color") or colors["black"] if props else colors["black"]
+        font = pygame.font.SysFont(font_name, 32)
+        self.text = font.render(self.value, True, font_color)
+
+        defaults = {
+            "width": self.text.get_width(),
+            "height": self.text.get_height(),
+            "background_color": colors["white"],
+            "color": colors["black"],
+        }
+
+        if props is None:
+            props = cast(TextProps, defaults)
+
+        self.width = props.get("width") or defaults["width"]
+        self.height = props.get("height") or defaults["height"]
+        self.background_color = (
+            props.get("background_color") or defaults["background_color"]
+        )
+        self.color = props.get("color") or defaults["color"]
+
+        print(self.height)
+
+    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
+        self.bounds = super().draw(canvas, parent_offset)
+        canvas.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
+
+        return self.bounds
 
 
 # ============================================================
