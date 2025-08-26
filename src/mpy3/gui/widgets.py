@@ -227,89 +227,84 @@ class Box(Widget):
     def draw(
         self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
     ) -> Rect:
-        self.child_alignment = cast(Alignment, self.child_alignment)
 
-        # If there is a border, self.bounds will be parent to Box inner content
-        has_border = not Rectangle.is_similar(self.border_size, Rectangle.zero())
+        self._resize_to_fit_children()
 
-        total_children_width = sum(
-            child.width for child in self.children if isinstance(child, Box)
-        )
-        total_children_height = sum(
-            child.height for child in self.children if isinstance(child, Box)
-        )
+        border_bounds = self._draw_border(canvas, parent_offset, alignment)
+        content_bounds = self._draw_content(canvas, parent_offset, alignment)
 
-        if total_children_width > self.width - self.border_size.x:
+        offset = Vector(content_bounds.left, content_bounds.top)
+        if self.child_alignment == "center":
+            offset.y += content_bounds.height / 2
+
+        self._draw_children(canvas, offset, cast(Alignment, self.child_alignment))
+
+        self.bounds = border_bounds
+        return self.bounds
+
+    def _resize_to_fit_children(self) -> None:
+        total_children_width, total_children_height = [0, 0]
+        box_children = [child for child in self.children if isinstance(child, Box)]
+        total_children_width = sum(child.width for child in box_children)
+        total_children_height = sum(child.height for child in box_children)
+
+        content_width = self.width - self.border_size.x
+        content_height = self.height - self.border_size.y
+        if total_children_width > content_width:
             self.width = total_children_width + self.border_size.x
-
-        if total_children_height > self.height - self.border_size.y:
+        if total_children_height > content_height:
             self.height = total_children_height + self.border_size.y
 
+    def _draw_border(
+        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+    ) -> Rect:
+        background_color = self.border_color
+
+        offset_x = parent_offset.x
         offset_y = parent_offset.y
-        if alignment == "center" and not has_border:
+        if alignment == "center":
             offset_y -= self.height / 2
 
-        background_color = None
-        if has_border:
-            background_color = self.border_color
-        else:
-            background_color = self.background_color or canvas.background_color
-
-        self.bounds = pygame.draw.rect(
+        return pygame.draw.rect(
             canvas.buffer,
             background_color,
-            [parent_offset.x, offset_y, self.width, self.height],
+            [offset_x, offset_y, self.width, self.height],
         )
 
-        if not has_border:
-            offset = Vector(self.bounds.left, self.bounds.top)
-            if self.child_alignment == "center":
-                offset.y = self.bounds.top - self.height / 2
+    def _draw_content(
+        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+    ) -> Rect:
+        background_color = self.background_color or canvas.background_color
 
-            self._draw_children(canvas, offset, self.child_alignment)
-            return self.bounds
-
-        # Box inner
-        inner_x = parent_offset.x
-        inner_y = parent_offset.y
-        inner_width = self.width
-        inner_height = self.height
+        offset_x = parent_offset.x
+        offset_y = parent_offset.y
+        width = self.width
+        height = self.height
 
         if self.border_size.left:
             size = self.border_size.left
-            inner_width -= size
-            inner_x += size
+            width -= size
+            offset_x += size
 
         if self.border_size.right:
-            inner_width -= self.border_size.right
+            width -= self.border_size.right
 
         if self.border_size.top:
             size = self.border_size.top
-            inner_height -= size
-            inner_y += size
+            height -= size
+            offset_y += size
 
         if self.border_size.bottom:
-            inner_height -= self.border_size.bottom
+            height -= self.border_size.bottom
 
-        inner_offset_y = inner_y
         if alignment == "center":
-            inner_offset_y -= self.height / 2
+            offset_y -= self.height / 2
 
-        background_color = self.background_color or canvas.background_color
-
-        inner_bounds = pygame.draw.rect(
+        return pygame.draw.rect(
             canvas.buffer,
             background_color,
-            [inner_x, inner_y, inner_width, inner_height],
+            [offset_x, offset_y, width, height],
         )
-
-        offset = Vector(inner_bounds.left, inner_bounds.top)
-        if self.child_alignment == "center":
-            offset.y += inner_height / 2
-
-        self._draw_children(canvas, offset, self.child_alignment)
-
-        return self.bounds
 
     def _draw_children(
         self, canvas: Canvas, offset: Vector, alignment: Alignment = "start"
