@@ -205,15 +205,18 @@ class Box(Widget):
         # If there is a border, self.bounds will be parent to Box inner content
         has_border = self.border_size != Rectangle.zero()
 
+        total_children_width = sum(
+            child.width for child in self.children if isinstance(child, Box)
+        )
         total_children_height = sum(
             child.height for child in self.children if isinstance(child, Box)
         )
 
+        if total_children_width > self.width - self.border_size.x:
+            self.width = total_children_width + self.border_size.x
+
         if total_children_height > self.height - self.border_size.y:
-            if has_border:
-                self.height = total_children_height + self.border_size.y
-            else:
-                self.height = total_children_height
+            self.height = total_children_height + self.border_size.y
 
         background_color = None
         if has_border:
