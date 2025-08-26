@@ -38,7 +38,9 @@ class App:
 
                 track_list_item = Box(
                     {
+                        "child_alignment": "center",
                         "width": track_list_container.get_width(),
+                        "height": 60,
                         "border_bottom_size": 2,
                     }
                 )

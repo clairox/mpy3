@@ -84,6 +84,18 @@ class Rectangle:
     def zero(cls) -> Self:
         return cls(0, 0, 0, 0)
 
+    @classmethod
+    def is_similar(cls, rect1, rect2) -> bool:
+        if (
+            rect1.left == rect2.left
+            and rect1.right == rect2.right
+            and rect1.top == rect2.top
+            and rect1.bottom == rect2.bottom
+        ):
+            return True
+
+        return False
+
     def __repr__(self) -> str:
         return f"Rectangle({self.left}, {self.right}, {self.top}, {self.bottom})"
 
@@ -131,7 +143,7 @@ class Canvas:
         offset = Vector(0, 0)
         for widget in self.children:
             if isinstance(widget, Box):
-                widget.draw(self, offset)
+                widget.draw(self, offset, "start")
                 offset.y += widget.get_height()
 
     def add_widget(self, widget: Widget) -> None:
@@ -142,8 +154,16 @@ class Canvas:
 #  Box
 # ============================================================
 
+Distribution = Union[
+    Literal["start"], Literal["end"], Literal["center"], Literal["between"]
+]
+
+Alignment = Literal["start", "end", "center"]
+
 
 class BoxProps(WidgetProps, total=False):
+    distribution: Distribution
+    child_alignment: Alignment
     width: float
     height: float
 
@@ -166,12 +186,16 @@ class Box(Widget):
 
         if props is None:
             props = {
+                "distribution": "center",
+                "child_alignment": "start",
                 "width": 0,
                 "height": 0,
                 "border_size": 0,
                 "border_color": colors["black"],
             }
 
+        self.distribution = props.get("distribution") or "center"
+        self.child_alignment = props.get("child_alignment") or "start"
         self.width = props.get("width") or 0
         self.height = props.get("height") or 0
 
@@ -200,10 +224,13 @@ class Box(Widget):
 
         self.bounds = None
 
-    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
+    def draw(
+        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+    ) -> Rect:
+        self.child_alignment = cast(Alignment, self.child_alignment)
 
         # If there is a border, self.bounds will be parent to Box inner content
-        has_border = self.border_size != Rectangle.zero()
+        has_border = not Rectangle.is_similar(self.border_size, Rectangle.zero())
 
         total_children_width = sum(
             child.width for child in self.children if isinstance(child, Box)
@@ -218,6 +245,11 @@ class Box(Widget):
         if total_children_height > self.height - self.border_size.y:
             self.height = total_children_height + self.border_size.y
 
+        offset_y = parent_offset.y
+        if alignment == "center" and not has_border:
+            offset_y -= self.height / 2
+
+        print(parent_offset.y, offset_y)
         background_color = None
         if has_border:
             background_color = self.border_color
@@ -227,12 +259,15 @@ class Box(Widget):
         self.bounds = pygame.draw.rect(
             canvas.buffer,
             background_color,
-            [parent_offset.x, parent_offset.y, self.width, self.height],
+            [parent_offset.x, offset_y, self.width, self.height],
         )
 
         if not has_border:
-            offset = Vector(self.bounds.left, self.bounds.right)
-            self._draw_children(canvas, offset)
+            offset = Vector(self.bounds.left, self.bounds.top)
+            if self.child_alignment == "center":
+                offset.y = self.bounds.top - self.height / 2
+
+            self._draw_children(canvas, offset, self.child_alignment)
             return self.bounds
 
         # Box inner
@@ -257,6 +292,10 @@ class Box(Widget):
         if self.border_size.bottom:
             inner_height -= self.border_size.bottom
 
+        inner_offset_y = inner_y
+        if alignment == "center":
+            inner_offset_y -= self.height / 2
+
         background_color = self.background_color or canvas.background_color
 
         inner_bounds = pygame.draw.rect(
@@ -266,14 +305,19 @@ class Box(Widget):
         )
 
         offset = Vector(inner_bounds.left, inner_bounds.top)
-        self._draw_children(canvas, offset)
+        if self.child_alignment == "center":
+            offset.y += inner_height / 2
+
+        self._draw_children(canvas, offset, self.child_alignment)
 
         return self.bounds
 
-    def _draw_children(self, canvas: Canvas, offset: Vector):
+    def _draw_children(
+        self, canvas: Canvas, offset: Vector, alignment: Alignment = "start"
+    ):
         _offset = offset
         for child in [item for item in self.children if isinstance(item, Box)]:
-            rect = child.draw(canvas, _offset)
+            rect = child.draw(canvas, _offset, alignment)
             _offset.y += rect.height
 
     def add_widget(self, widget: Widget) -> None:
@@ -337,8 +381,10 @@ class Text(Box):
         )
         self.color = props.get("color") or defaults["color"]
 
-    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
-        self.bounds = super().draw(canvas, parent_offset)
+    def draw(
+        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+    ) -> Rect:
+        self.bounds = super().draw(canvas, parent_offset, alignment)
         canvas.buffer.blit(self.text, [self.bounds.left, self.bounds.top])
 
         return self.bounds
@@ -378,8 +424,10 @@ class Button(Box):
         self.background_color = props.get("background_color") or colors["black"]
         self.color = props.get("color") or colors["white"]
 
-    def draw(self, canvas: Canvas, parent_offset: Vector) -> Rect:
-        self.bounds = super().draw(canvas, parent_offset)
+    def draw(
+        self, canvas: Canvas, parent_offset: Vector, alignment: Alignment = "start"
+    ) -> Rect:
+        self.bounds = super().draw(canvas, parent_offset, alignment)
 
         font = pygame.font.SysFont("Free Sans", 32)
         text = font.render(self.name, True, self.color)
