@@ -249,7 +249,6 @@ class Box(Widget):
         if alignment == "center" and not has_border:
             offset_y -= self.height / 2
 
-        print(parent_offset.y, offset_y)
         background_color = None
         if has_border:
             background_color = self.border_color
