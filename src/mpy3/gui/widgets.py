@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Self, TypedDict, Union, cast, overload
+from typing import Literal, Optional, Self, TypedDict, Union, cast
 
 import pygame
 from pygame import Color, Rect
@@ -268,7 +268,8 @@ class Box(Widget):
     ) -> Rect:
         offset = parent_offset
 
-        self._resize_to_fit_children()
+        children_width, children_height = self._calculate_children_dimensions()
+        self._resize_to_fit_children(children_width, children_height)
 
         hierarchy = []
 
@@ -288,28 +289,25 @@ class Box(Widget):
         offset = Vector(content_bounds.left, content_bounds.top)
         hierarchy.append(content_bounds)
 
-        box_children = self._get_renderable_children()
-        total_children_height = sum(child.height for child in box_children)
         if self.child_alignment == "center":
-            offset.y += content_bounds.height / 2 - total_children_height / 2
+            offset.y += content_bounds.height / 2 - children_height / 2
 
         self._draw_children(canvas, offset, cast(Alignment, self.child_alignment))
 
         self.bounds = hierarchy[0]
         return self.bounds
 
-    def _resize_to_fit_children(self) -> None:
-        total_children_width, total_children_height = [0, 0]
-        box_children = self._get_renderable_children()
-        total_children_width = sum(child.width for child in box_children)
-        total_children_height = sum(child.height for child in box_children)
-
+    def _resize_to_fit_children(
+        self, children_width: float, children_height: float
+    ) -> None:
         content_width = self.width - self.border_size.x - self.padding.x
         content_height = self.height - self.border_size.y - self.padding.y
-        if total_children_width > content_width:
-            self.width = total_children_width + self.border_size.x + self.padding.x
-        if total_children_height > content_height:
-            self.height = total_children_height + self.border_size.y + self.padding.y
+
+        if children_width > content_width:
+            self.width = children_width + self.border_size.x + self.padding.x
+
+        if children_height > content_height:
+            self.height = children_height + self.border_size.y + self.padding.y
 
     def _draw_border(self, canvas: Canvas, parent_offset: Vector) -> Rect:
         background_color = self.border_color
@@ -356,6 +354,13 @@ class Box(Widget):
 
     def _get_renderable_children(self) -> list[Self]:
         return [cast(Self, child) for child in self.children if isinstance(child, Box)]
+
+    def _calculate_children_dimensions(self) -> list[float]:
+        rendered_children = self._get_renderable_children()
+        width = sum(child.width for child in rendered_children)
+        height = sum(child.height for child in rendered_children)
+
+        return [width, height]
 
     def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
