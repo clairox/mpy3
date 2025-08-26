@@ -341,13 +341,14 @@ class Box(Widget):
 # ============================================================
 
 DEFAULT_FONT = "Free Sans"
+DEFAULT_FONT_SIZE = 26
 
 
 class TextProps(BoxProps, total=False):
     background_color: Color
     color: Color
     font: str
-    font_size: float
+    font_size: int
 
 
 class Text(Box):
@@ -360,8 +361,11 @@ class Text(Box):
         self.value = value
 
         font_name = props.get("font") or DEFAULT_FONT if props else DEFAULT_FONT
+        font_size = (
+            props.get("font_size") or DEFAULT_FONT_SIZE if props else DEFAULT_FONT_SIZE
+        )
         font_color = props.get("color") or colors["black"] if props else colors["black"]
-        font = pygame.font.SysFont(font_name, 32)
+        font = pygame.font.SysFont(font_name, font_size)
         self.text = font.render(self.value, True, font_color)
 
         defaults = {
