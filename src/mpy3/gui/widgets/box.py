@@ -5,7 +5,7 @@ import pygame
 from pygame import Rect as PGRect
 from pygame.color import Color
 
-from mpy3.gui.colors import colors
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.base import Widget, WidgetProps
 from mpy3.gui.widgets.geometry import Rectangle, Vector
 from mpy3.gui.widgets.screen import Screen
@@ -34,9 +34,9 @@ class BoxProps(WidgetProps):
     border_right_size: int = 0
     border_top_size: int = 0
     border_bottom_size: int = 0
-    border_color: Color = field(default_factory=lambda: colors["foreground"])
+    border_color: str = Colors.foreground
 
-    background_color: Color = field(default_factory=lambda: colors["background"])
+    background_color: str = Colors.background
 
 
 class Box(Widget):
@@ -156,7 +156,7 @@ class Box(Widget):
 
     def _draw_padding(self, screen: Screen, parent_offset: Vector):
         background_color = self.background_color or screen.background_color
-        background_color = colors["padding_debug"]
+        background_color = Colors.background
 
         width = self.width - self.border_size.x
         height = self.height - self.border_size.y

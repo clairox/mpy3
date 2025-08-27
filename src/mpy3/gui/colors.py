@@ -1,12 +1,15 @@
-from pygame import Color
+from dataclasses import dataclass
 
-colors = {
-    "background": Color("#FFFFFF"),
-    "foreground": Color("#000000"),
-    "white": Color("#FFFFFF"),
-    "black": Color("#000000"),
-    "margin_debug": Color("#F8CB9C"),
-    "border_debug": Color("#F8CB9C"),
-    "padding_debug": Color("#C2DDB6"),
-    "content_debug": Color("#9FC4E7"),
-}
+
+@dataclass(frozen=True)
+class Colors:
+    background = "#FFFFFF"
+    foreground = "#000000"
+
+    white = "#FFFFFF"
+    black = "#000000"
+
+    margin_debug = "#F8CB9C"
+    border_debug = "#E2E051"
+    padding_debug = "#C2DDB6"
+    content_debug = "#9FC4E7"

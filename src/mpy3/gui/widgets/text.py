@@ -5,7 +5,7 @@ import pygame
 from pygame import Color
 from pygame import Rect as PGRect
 
-from mpy3.gui.colors import colors
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.geometry import Vector
 from mpy3.gui.widgets.screen import Screen
@@ -17,8 +17,8 @@ DEFAULT_FONT_SIZE = 26
 
 @dataclass
 class TextProps(BoxProps):
-    background_color: Color = field(default_factory=lambda: colors["background"])
-    color: Color = field(default_factory=lambda: colors["foreground"])
+    background_color: str = Colors.background
+    color: str = Colors.foreground
     font_family: str = DEFAULT_FONT
     font_size: int = DEFAULT_FONT_SIZE
 

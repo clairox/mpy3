@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pygame
 
-from mpy3.gui.colors import colors
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.button import Button
 from mpy3.gui.widgets.canvas import Canvas
@@ -31,8 +31,6 @@ class App:
         canvas = Canvas(screen)
         clock = pygame.time.Clock()
 
-        w = None
-
         if len(self.media_list) == 0:
             canvas.add_widget(Text("No music"))
         else:
@@ -47,6 +45,7 @@ class App:
                         padding_vertical=14,
                         width=track_list_container.get_width(),
                         border_bottom_size=2,
+                        background_color=Colors.border_debug,
                     )
                 )
 

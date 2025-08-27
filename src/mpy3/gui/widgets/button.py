@@ -5,7 +5,7 @@ import pygame
 from pygame import Color
 from pygame import Rect as PGRect
 
-from mpy3.gui.colors import colors
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.geometry import Vector
 from mpy3.gui.widgets.screen import Screen
@@ -16,7 +16,7 @@ DEFAULT_BUTTON_SIZE = Vector(160, 70)
 
 @dataclass
 class ButtonProps(BoxProps):
-    color: Color = field(default_factory=lambda: colors["white"])
+    color: str = Colors.white
 
 
 class Button(Box):
@@ -31,7 +31,7 @@ class Button(Box):
 
         self.width = props.width
         self.height = props.height
-        self.background_color = colors["black"]
+        self.background_color = Colors.black
         self.color = props.color
 
     def draw(

@@ -2,7 +2,7 @@ from typing import Protocol, cast
 
 import pygame
 
-from mpy3.gui.colors import colors
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.base import Widget
 from mpy3.gui.widgets.geometry import Vector
 from mpy3.gui.widgets.types import Alignment
@@ -11,7 +11,7 @@ from mpy3.gui.widgets.types import Alignment
 class Screen:
     def __init__(self) -> None:
         self.buffer = pygame.display.set_mode([1200, 700])
-        self.background_color = colors["background"]
+        self.background_color = Colors.background
         self.children: list[Widget] = []
 
     def update(self) -> None:
