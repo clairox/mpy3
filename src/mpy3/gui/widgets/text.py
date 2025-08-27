@@ -1,12 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Optional
 
 import pygame
-from pygame import Color
 from pygame import Rect as PGRect
 
 from mpy3.gui.colors import Colors
-from mpy3.gui.widgets.box import Box, BoxProps
+from mpy3.gui.widgets.box import DEFAULT_BOX_PROPS, Box, BoxProps, PartialBoxProps
 from mpy3.gui.widgets.geometry import Vector
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.types import Alignment
@@ -15,30 +13,43 @@ DEFAULT_FONT = "Free Sans"
 DEFAULT_FONT_SIZE = 26
 
 
-@dataclass
 class TextProps(BoxProps):
-    background_color: str = Colors.background
-    color: str = Colors.foreground
-    font_family: str = DEFAULT_FONT
-    font_size: int = DEFAULT_FONT_SIZE
+    color: str
+    font_family: str
+    font_size: int
+
+
+class PartialTextProps(PartialBoxProps, total=False):
+    color: str
+    font_family: str
+    font_size: int
+
+
+DEFAULT_TEXT_PROPS: TextProps = {
+    **DEFAULT_BOX_PROPS,
+    "color": Colors.foreground,
+    "font_family": "Free Sans",
+    "font_size": 26,
+}
 
 
 class Text(Box):
-    def __init__(
-        self, value: str, props: Optional[TextProps | dict[str, Any]] = None
-    ) -> None:
-        props = self._init_props(TextProps, props)
+    def __init__(self, value: str, props: Optional[PartialTextProps] = None) -> None:
         super().__init__(props)
+
+        _props: TextProps = (
+            DEFAULT_TEXT_PROPS if props is None else {**DEFAULT_TEXT_PROPS, **props}
+        )
 
         self._class_name = "Text"
         self._generate_id(self._class_name)
 
         self.value = value
 
-        self.font_family = props.font_family
-        self.font_size = props.font_size
-        self.color = props.color
-        self.background_color = props.background_color
+        self.font_family = _props["font_family"]
+        self.font_size = _props["font_size"]
+        self.color = _props["color"]
+        self.background_color = _props["background_color"]
 
         self._render_text()
 

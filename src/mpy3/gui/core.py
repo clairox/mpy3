@@ -3,6 +3,7 @@ from pathlib import Path
 import pygame
 
 from mpy3.gui.colors import Colors
+from mpy3.gui.widgets.base import Widget
 from mpy3.gui.widgets.box import Box, BoxProps
 from mpy3.gui.widgets.button import Button
 from mpy3.gui.widgets.canvas import Canvas
@@ -34,23 +35,22 @@ class App:
         if len(self.media_list) == 0:
             canvas.add_widget(Text("No music"))
         else:
-            track_list_container = Box(BoxProps(width=canvas.get_width()))
+            track_list_container = Box({"width": canvas.get_width()})
 
             for media in self.media_list:
                 track_list_item = Box(
-                    BoxProps(
-                        child_alignment="center",
-                        spacing=6,
-                        padding_horizontal=18,
-                        padding_vertical=14,
-                        width=track_list_container.get_width(),
-                        border_bottom_size=2,
-                        background_color=Colors.border_debug,
-                    )
+                    {
+                        "child_alignment": "center",
+                        "spacing": 6,
+                        "padding_horizontal": 18,
+                        "padding_vertical": 14,
+                        "width": track_list_container.get_width(),
+                        "border_bottom_size": 2,
+                    }
                 )
 
                 track_title = Text(media.title)
-                track_artist = Text("Unknown artist", TextProps(font_size=20))
+                track_artist = Text("Unknown artist", {"font_size": 20})
                 if media.meta and media.meta["artist"]:
                     track_artist.set_value(media.meta["artist"])
 

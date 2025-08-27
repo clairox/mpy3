@@ -1,70 +1,125 @@
-from dataclasses import dataclass, field
 from typing import Optional, Self, cast
 
 import pygame
 from pygame import Rect as PGRect
-from pygame.color import Color
 
 from mpy3.gui.colors import Colors
-from mpy3.gui.widgets.base import Widget, WidgetProps
+from mpy3.gui.widgets.base import (
+    DEFAULT_WIDGET_PROPS,
+    PartialWidgetProps,
+    Widget,
+    WidgetProps,
+)
 from mpy3.gui.widgets.geometry import Rectangle, Vector
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.types import Alignment, Distribution
 
 
-@dataclass
 class BoxProps(WidgetProps):
-    distribution: Distribution = "center"
-    child_alignment: Alignment = "start"
-    spacing: int = 0
+    distribution: Distribution
+    child_alignment: Alignment
+    spacing: int
 
-    padding: int = 0
-    padding_left: int = 0
-    padding_right: int = 0
-    padding_top: int = 0
-    padding_bottom: int = 0
-    padding_horizontal: int = 0
-    padding_vertical: int = 0
+    padding: int
+    padding_left: int | None
+    padding_right: int | None
+    padding_top: int | None
+    padding_bottom: int | None
+    padding_horizontal: int | None
+    padding_vertical: int | None
 
-    width: float = 0
-    height: float = 0
+    width: float
+    height: float
 
-    border_size: int = 0
-    border_left_size: int = 0
-    border_right_size: int = 0
-    border_top_size: int = 0
-    border_bottom_size: int = 0
-    border_color: str = Colors.foreground
+    border_size: int
+    border_left_size: int | None
+    border_right_size: int | None
+    border_top_size: int | None
+    border_bottom_size: int | None
+    border_color: str
 
-    background_color: str = Colors.background
+    background_color: str
+
+
+class PartialBoxProps(PartialWidgetProps, total=False):
+    distribution: Distribution
+    child_alignment: Alignment
+    spacing: int
+
+    padding: int
+    padding_left: int | None
+    padding_right: int | None
+    padding_top: int | None
+    padding_bottom: int | None
+    padding_horizontal: int | None
+    padding_vertical: int | None
+
+    width: float
+    height: float
+
+    border_size: int
+    border_left_size: int | None
+    border_right_size: int | None
+    border_top_size: int | None
+    border_bottom_size: int | None
+    border_color: str
+
+    background_color: str
+
+
+DEFAULT_BOX_PROPS: BoxProps = {
+    **DEFAULT_WIDGET_PROPS,
+    "distribution": "center",
+    "child_alignment": "start",
+    "spacing": 0,
+    "padding": 0,
+    "padding_left": None,
+    "padding_right": None,
+    "padding_top": None,
+    "padding_bottom": None,
+    "padding_horizontal": None,
+    "padding_vertical": None,
+    "width": 0,
+    "height": 0,
+    "border_size": 0,
+    "border_left_size": None,
+    "border_right_size": None,
+    "border_top_size": None,
+    "border_bottom_size": None,
+    "border_color": Colors.foreground,
+    "background_color": Colors.background,
+}
 
 
 class Box(Widget):
-    def __init__(self, props: Optional[BoxProps] = None) -> None:
-        props = self._init_props(BoxProps, props)
+    def __init__(self, props: Optional[PartialBoxProps] = None) -> None:
         super().__init__(props)
+
+        _props: BoxProps = (
+            DEFAULT_BOX_PROPS if props is None else {**DEFAULT_BOX_PROPS, **props}
+        )
 
         self._class_name = "Box"
         self._generate_id(self._class_name)
 
-        self.distribution = props.distribution
-        self.child_alignment = props.child_alignment
-        self.spacing = props.spacing
-        self.width = props.width
-        self.height = props.height
-        self.border_color = props.border_color
-        self.background_color = props.background_color
+        self.distribution = _props["distribution"]
+        self.child_alignment = _props["child_alignment"]
+        self.spacing = _props["spacing"]
+        self.width = _props["width"]
+        self.height = _props["height"]
+        self.border_color = _props["border_color"]
+        self.background_color = _props["background_color"]
 
         self.padding = Rectangle(0)
-        padding_prop = props.padding
+        padding_prop = _props["padding"]
         if padding_prop:
             self.padding = Rectangle(padding_prop)
 
         sides = ["left", "right", "top", "bottom", "horizontal", "vertical"]
 
         for side in sides:
-            prop = props[f"padding_{side}"]
-            if prop:
+            prop = _props[f"padding_{side}"]
+            if prop is not None:
                 if side == "left":
                     self.padding.left = prop
                 elif side == "right":
@@ -81,15 +136,15 @@ class Box(Widget):
                     self.padding.bottom = prop
 
         self.border_size = Rectangle(0)
-        border_size_prop = props.border_size
+        border_size_prop = _props["border_size"]
         if border_size_prop:
             self.border_size = Rectangle(border_size_prop)
 
         sides = ["left", "right", "top", "bottom"]
 
         for side in sides:
-            prop = props[f"border_{side}_size"]
-            if prop:
+            prop = _props[f"border_{side}_size"]
+            if prop is not None:
                 if side == "left":
                     self.border_size.left = prop
                 elif side == "right":
