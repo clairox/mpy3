@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pygame
 
+from mpy3.gui.colors import colors
 from mpy3.gui.widgets.box import Box, BoxProps
+from mpy3.gui.widgets.button import Button
 from mpy3.gui.widgets.canvas import Canvas
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.text import Text, TextProps
@@ -23,9 +25,13 @@ class App:
 
     def run(self) -> None:
         pygame.init()
+        pygame.display.set_caption("mpy3")
+
         screen = Screen()
         canvas = Canvas(screen)
         clock = pygame.time.Clock()
+
+        w = None
 
         if len(self.media_list) == 0:
             canvas.add_widget(Text("No music"))
@@ -35,9 +41,9 @@ class App:
             for media in self.media_list:
                 track_list_item = Box(
                     BoxProps(
-                        child_alignment="start",
+                        child_alignment="center",
                         spacing=6,
-                        padding_left=18,
+                        padding_horizontal=18,
                         padding_vertical=14,
                         width=track_list_container.get_width(),
                         border_bottom_size=2,
@@ -51,11 +57,13 @@ class App:
 
                 track_list_item.add_widget(track_title)
                 track_list_item.add_widget(track_artist)
+
                 track_list_container.add_widget(track_list_item)
 
             canvas.add_widget(track_list_container)
 
         running = True
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
