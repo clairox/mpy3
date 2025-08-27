@@ -14,6 +14,8 @@ from mpy3.gui.widgets.geometry import Rectangle, Vector
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.types import Alignment, Distribution
 
+NAME = "Box"
+
 
 class BoxProps(WidgetProps):
     distribution: Distribution
@@ -99,8 +101,7 @@ class Box(Widget):
             DEFAULT_BOX_PROPS if props is None else {**DEFAULT_BOX_PROPS, **props}
         )
 
-        self._class_name = "Box"
-        self._generate_id(self._class_name)
+        self._generate_id(NAME)
 
         self.distribution = _props["distribution"]
         self.child_alignment = _props["child_alignment"]

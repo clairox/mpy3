@@ -9,8 +9,7 @@ from mpy3.gui.widgets.geometry import Vector
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.types import Alignment
 
-DEFAULT_FONT = "Free Sans"
-DEFAULT_FONT_SIZE = 26
+NAME = "Text"
 
 
 class TextProps(BoxProps):
@@ -41,8 +40,7 @@ class Text(Box):
             DEFAULT_TEXT_PROPS if props is None else {**DEFAULT_TEXT_PROPS, **props}
         )
 
-        self._class_name = "Text"
-        self._generate_id(self._class_name)
+        self._generate_id(NAME)
 
         self.value = value
 

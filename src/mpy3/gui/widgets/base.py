@@ -2,7 +2,7 @@ import random
 import string
 from typing import Generic, Optional, Type, TypedDict, TypeVar
 
-T = TypeVar("T")
+NAME = "Widget"
 
 
 class WidgetProps(TypedDict):
@@ -21,8 +21,7 @@ class Widget:
         self,
         props: Optional[PartialWidgetProps] = None,
     ) -> None:
-        self._class_name = "Widget"
-        self._generate_id(self._class_name)
+        self._generate_id(NAME)
 
         self.children: list[Widget] = []
 
