@@ -21,9 +21,8 @@ class ButtonProps(BoxProps):
 
 class Button(Box):
     def __init__(self, name: str, props: Optional[ButtonProps] = None) -> None:
-        super().__init__(props)
-
         props = self._init_props(ButtonProps, props)
+        super().__init__(props)
 
         self._class_name = "Button"
         self._generate_id(self._class_name)
