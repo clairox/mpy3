@@ -41,9 +41,8 @@ class BoxProps(WidgetProps):
 
 class Box(Widget):
     def __init__(self, props: Optional[BoxProps] = None) -> None:
-        super().__init__(props)
-
         props = self._init_props(BoxProps, props)
+        super().__init__(props)
 
         self._class_name = "Box"
         self._generate_id(self._class_name)
@@ -115,13 +114,13 @@ class Box(Widget):
         has_border = self.border_size != Rectangle.zero()
         if has_border:
             border_bounds = self._draw_border(screen, offset)
-            offset = parent_offset + Vector(self.border_size.left, self.border_size.top)
+            offset += Vector(self.border_size.left, self.border_size.top)
             hierarchy.append(border_bounds)
 
         has_padding = self.padding != Rectangle.zero()
         if has_padding:
             padding_bounds = self._draw_padding(screen, offset)
-            offset = parent_offset + Vector(self.padding.left, self.padding.top)
+            offset += Vector(self.padding.left, self.padding.top)
             hierarchy.append(padding_bounds)
 
         content_bounds = self._draw_content(screen, offset)
@@ -157,6 +156,7 @@ class Box(Widget):
 
     def _draw_padding(self, screen: Screen, parent_offset: Vector):
         background_color = self.background_color or screen.background_color
+        background_color = colors["padding_debug"]
 
         width = self.width - self.border_size.x
         height = self.height - self.border_size.y
