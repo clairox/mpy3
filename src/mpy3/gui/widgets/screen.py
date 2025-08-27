@@ -18,9 +18,9 @@ class Screen:
         offset = Vector(0, 0)
         for widget in self.children:
             if hasattr(widget, "draw") and callable(getattr(widget, "draw")):
-                drawable = cast(BoxLike, widget)
-                drawable.draw(self, offset, "start")
-                offset.y += drawable.get_height()
+                box = cast(BoxLike, widget)
+                box.draw(self, offset, "start")
+                offset.y += box.get_height()
 
     def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
