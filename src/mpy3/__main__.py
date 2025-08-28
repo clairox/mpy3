@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mpy3.gui.core import App
+from mpy3.app import App
 
 DEFAULT_MEDIA_DIR = Path.home() / "mpy3/tracks/"
 
