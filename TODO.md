@@ -1,6 +1,6 @@
 # Todos
 
 - [ ] Add full width and height
-- [ ] Handle input
+- [ ] Add parent styling inheritance
 
 # In progress

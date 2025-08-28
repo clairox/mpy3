@@ -212,7 +212,6 @@ class Box(Widget):
 
     def _draw_padding(self, screen: Screen, parent_offset: Vector):
         background_color = self.background_color or screen.background_color
-        background_color = Colors.background
 
         width = self.width - self.border_size.x
         height = self.height - self.border_size.y
@@ -262,6 +261,9 @@ class Box(Widget):
 
     def add_widget(self, widget: Widget) -> None:
         self.children.append(widget)
+
+    def clear(self) -> None:
+        self.children.clear()
 
     def set_width(self, value: float) -> None:
         self.width = value

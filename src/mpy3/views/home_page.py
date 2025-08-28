@@ -1,5 +1,7 @@
 from pathlib import Path
+from threading import Event
 
+from mpy3.gui.colors import Colors
 from mpy3.gui.widgets.box import Box
 from mpy3.gui.widgets.canvas import Canvas
 from mpy3.gui.widgets.screen import Screen
@@ -22,6 +24,23 @@ class HomePage(Page):
 
         self.media_list = sorted(unsorted_media_list, key=lambda media: media.title)
 
+        self.screen.add_event_listener("onplay", self.handle_play)
+        self.screen.add_event_listener("ondown", self.handle_down)
+        self.screen.add_event_listener("onup", self.handle_up)
+
+        self.index = 0
+
+    def handle_play(self, _: Event) -> None:
+        pass
+
+    def handle_down(self, _: Event) -> None:
+        next_index = self.index + 1
+        self.index = 0 if next_index == len(self.media_list) else next_index
+
+    def handle_up(self, _: Event) -> None:
+        next_index = self.index - 1
+        self.index = len(self.media_list) - 1 if next_index < 0 else next_index
+
     def render(self) -> Box:
         container = Box(
             {"width": self.canvas.get_width(), "height": self.canvas.get_height()}
@@ -32,7 +51,10 @@ class HomePage(Page):
         else:
             track_list = Box({"width": container.get_width()})
 
-            for media in self.media_list:
+            for i, media in enumerate(self.media_list):
+                background_color = Colors.black if i == self.index else Colors.white
+                text_color = Colors.white if i == self.index else Colors.black
+
                 track_list_item = Box(
                     {
                         "child_alignment": "center",
@@ -41,11 +63,22 @@ class HomePage(Page):
                         "padding_vertical": 14,
                         "width": track_list.get_width(),
                         "border_bottom_size": 2,
+                        "background_color": background_color,
                     }
                 )
 
-                track_title = Text(media.title)
-                track_artist = Text("Unknown artist", {"font_size": 20})
+                track_title = Text(
+                    media.title,
+                    {"color": text_color, "background_color": background_color},
+                )
+                track_artist = Text(
+                    "Unknown artist",
+                    {
+                        "font_size": 20,
+                        "color": text_color,
+                        "background_color": background_color,
+                    },
+                )
                 if media.meta and media.meta["artist"]:
                     track_artist.set_value(media.meta["artist"])
 
