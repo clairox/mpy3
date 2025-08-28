@@ -124,6 +124,15 @@ class MediaPlayer:
             self.stream.write(data)
             self.total_bytes_played += len(data)
 
+        self.stream.close()
+        if self.process.poll() is None:
+            self.process.terminate()
+
+        self.process = None
+
+        self.paused = True
+        self.pause_time = time.time()
+
     def get_time(self) -> float:
         if self.start_time is None:
             return 0
