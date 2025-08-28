@@ -12,12 +12,13 @@ from mpy3.gui.widgets.base import (
 )
 from mpy3.gui.widgets.geometry import Rectangle, Vector
 from mpy3.gui.widgets.screen import Screen
-from mpy3.gui.widgets.types import Alignment, Distribution
+from mpy3.gui.widgets.types import Alignment, Distribution, Orientation
 
 NAME = "Box"
 
 
 class BoxProps(WidgetProps):
+    orientation: Orientation
     distribution: Distribution
     child_alignment: Alignment
     spacing: int
@@ -44,6 +45,7 @@ class BoxProps(WidgetProps):
 
 
 class PartialBoxProps(PartialWidgetProps, total=False):
+    orientation: Orientation
     distribution: Distribution
     child_alignment: Alignment
     spacing: int
@@ -71,6 +73,7 @@ class PartialBoxProps(PartialWidgetProps, total=False):
 
 DEFAULT_BOX_PROPS: BoxProps = {
     **DEFAULT_WIDGET_PROPS,
+    "orientation": "column",
     "distribution": "center",
     "child_alignment": "start",
     "spacing": 0,
@@ -103,6 +106,7 @@ class Box(Widget):
 
         self._generate_id(NAME)
 
+        self.orientation = _props["orientation"]
         self.distribution = _props["distribution"]
         self.child_alignment = _props["child_alignment"]
         self.spacing = _props["spacing"]
@@ -184,7 +188,10 @@ class Box(Widget):
         hierarchy.append(content_bounds)
 
         if self.child_alignment == "center":
-            offset.y += content_bounds.height / 2 - children_height / 2
+            if self.orientation == "row":
+                offset.x += content_bounds.width / 2 - children_width / 2
+            elif self.orientation == "column":
+                offset.y += content_bounds.height / 2 - children_height / 2
 
         self._draw_children(screen, offset, cast(Alignment, self.child_alignment))
 
@@ -243,10 +250,18 @@ class Box(Widget):
         rendered_children = self._get_renderable_children()
         for i, child in enumerate(rendered_children):
             rect = child.draw(screen, _offset, alignment)
-            _offset.y += rect.height
 
-            if i < len(rendered_children) - 1:
-                _offset.y += self.spacing
+            if self.orientation == "row":
+                _offset.x += rect.width
+
+                if i < len(rendered_children) - 1:
+                    _offset.x += self.spacing
+
+            elif self.orientation == "column":
+                _offset.y += rect.height
+
+                if i < len(rendered_children) - 1:
+                    _offset.y += self.spacing
 
     def _get_renderable_children(self) -> list[Self]:
         return [cast(Self, child) for child in self.children if isinstance(child, Box)]
@@ -255,9 +270,20 @@ class Box(Widget):
         rendered_children = self._get_renderable_children()
         spacing_size = self.spacing * (len(rendered_children) - 1)
 
-        widths = [child.width for child in rendered_children]
-        width = max(widths) if len(widths) > 0 else self.width
-        height = sum(child.height for child in rendered_children) + spacing_size
+        width = self.width
+        height = self.width
+
+        if self.orientation == "row":
+            width = sum(child.width for child in rendered_children) + spacing_size
+
+            child_heights = [child.height for child in rendered_children]
+            height = max(child_heights) if len(child_heights) > 0 else self.height
+
+        elif self.orientation == "column":
+            height = sum(child.height for child in rendered_children) + spacing_size
+
+            child_widths = [child.width for child in rendered_children]
+            width = max(child_widths) if len(child_widths) > 0 else self.width
 
         return [width, height]
 

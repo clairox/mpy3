@@ -29,7 +29,7 @@ class PlayerPage(Page):
     def render(self) -> Box:
         container_widget = Box(
             {
-                "spacing": 32,
+                "spacing": 72,
                 "padding": 18,
                 "width": self.canvas.get_width(),
                 "height": self.canvas.get_height(),
@@ -38,27 +38,34 @@ class PlayerPage(Page):
 
         meta = self.media.meta
 
-        track_info_widget = Box({"background_color": Colors.content_debug})
-        track_title_widget = Text(self.media.title, {"font_size": 30})
+        # Track Info
+        track_info_widget = Box({"spacing": 4, "padding_left": 2})
         track_artist_widget = Text(
-            meta["artist"] if meta else "Unknown Artist", {"font_size": 26}
+            meta["artist"] if meta else "Unknown Artist", {"font_size": 24}
         )
-
-        time_elapsed = self.media_player.get_time()
-        track_duration = self.media.duration
-
-        time_elapsed_widget = Text(time_from_ms(time_elapsed), {"font_size": 26})
-        track_duration_widget = Text(time_from_ms(track_duration), {"font_size": 26})
+        track_title_widget = Text(self.media.title, {"font_size": 38})
 
         track_info_widget.add_widget(track_artist_widget)
         track_info_widget.add_widget(track_title_widget)
-        track_info_widget.add_widget(time_elapsed_widget)
-        track_info_widget.add_widget(track_duration_widget)
+
+        # Track Progress
+        time_elapsed = self.media_player.get_time()
+        track_duration = self.media.duration
+
+        time_container = Box({"orientation": "row", "spacing": 8, "padding_left": 2})
+        time_elapsed_widget = Text(time_from_ms(time_elapsed), {"font_size": 26})
+        slash_widget = Text("/", {"font_size": 26})
+        track_duration_widget = Text(time_from_ms(track_duration), {"font_size": 26})
+
+        time_container.add_widget(time_elapsed_widget)
+        time_container.add_widget(slash_widget)
+        time_container.add_widget(track_duration_widget)
 
         progress = time_elapsed / track_duration
 
         track_progress_container = Box(
             {
+                "spacing": 8,
                 "width": container_widget.get_width()
                 - container_widget.padding.left
                 - container_widget.padding.right,
@@ -73,6 +80,7 @@ class PlayerPage(Page):
             }
         )
 
+        track_progress_container.add_widget(time_container)
         track_progress_container.add_widget(track_progress)
 
         container_widget.add_widget(track_info_widget)
