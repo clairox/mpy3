@@ -1,7 +1,9 @@
 import json
+import math
 import subprocess
 import threading
 import time
+from math import floor
 from pathlib import Path
 
 import pyaudio
@@ -13,7 +15,33 @@ class Media:
     def __init__(self, mrl: Path) -> None:
         self.mrl = mrl
         self.title = mrl.stem
+        self.duration = self._get_duration()
         self.meta = None
+
+    def _get_duration(self):
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-i",
+                str(self.mrl),
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "json",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        response_json = result.stdout
+        duration = float(
+            json.loads(response_json).get("format", {}).get("duration", -1)
+        )
+        duration_in_millis = floor(duration * 1000)
+        return duration_in_millis
 
     def parse_meta(self):
         result = subprocess.run(
