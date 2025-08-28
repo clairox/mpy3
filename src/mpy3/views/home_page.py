@@ -7,14 +7,19 @@ from mpy3.gui.widgets.canvas import Canvas
 from mpy3.gui.widgets.screen import Screen
 from mpy3.gui.widgets.text import Text
 from mpy3.player import Media
+from mpy3.router import router
 from mpy3.views.base import Page
+
+DEFAULT_MEDIA_DIR = Path.home() / "mpy3/tracks/"
 
 
 class HomePage(Page):
-    def __init__(self, screen: Screen, canvas: Canvas, media_dir: Path) -> None:
+    def __init__(self, screen: Screen, canvas: Canvas) -> None:
         super().__init__(screen, canvas)
 
-        self.media_dir = media_dir
+        self.media_dir = Path(DEFAULT_MEDIA_DIR)
+        if not self.media_dir.exists():
+            Path.mkdir(self.media_dir, parents=True)
 
         unsorted_media_list: list[Media] = []
         for mrl in self.media_dir.iterdir():
