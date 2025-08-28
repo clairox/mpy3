@@ -47,13 +47,14 @@ class Media:
         result = subprocess.run(
             [
                 "ffprobe",
+                "-i",
+                str(self.mrl),
                 "-v",
                 "error",
                 "-show_entries",
                 "format_tags",
                 "-of",
                 "json",
-                str(self.mrl),
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
