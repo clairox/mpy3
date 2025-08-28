@@ -212,6 +212,7 @@ class Box(Widget):
 
     def _draw_padding(self, screen: Screen, parent_offset: Vector):
         background_color = self.background_color or screen.background_color
+        background_color = Colors.padding_debug
 
         width = self.width - self.border_size.x
         height = self.height - self.border_size.y
@@ -254,7 +255,9 @@ class Box(Widget):
     def _calculate_children_dimensions(self) -> list[float]:
         rendered_children = self._get_renderable_children()
         spacing_size = self.spacing * (len(rendered_children) - 1)
-        width = sum(child.width for child in rendered_children) + spacing_size
+
+        widths = [child.width for child in rendered_children]
+        width = max(widths) if len(widths) > 0 else self.width
         height = sum(child.height for child in rendered_children) + spacing_size
 
         return [width, height]

@@ -36,7 +36,8 @@ class HomePage(Page):
         self.index = 0
 
     def handle_play(self, _: Event) -> None:
-        pass
+        media = self.media_list[self.index]
+        router.goto("/player", media)
 
     def handle_down(self, _: Event) -> None:
         next_index = self.index + 1
