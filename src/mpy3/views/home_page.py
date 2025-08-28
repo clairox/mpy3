@@ -49,13 +49,17 @@ class HomePage(Page):
 
     def render(self) -> Box:
         container = Box(
-            {"width": self.canvas.get_width(), "height": self.canvas.get_height()}
+            {
+                "orientation": "column",
+                "width": self.canvas.get_width(),
+                "height": self.canvas.get_height(),
+            }
         )
 
         if len(self.media_list) == 0:
             container.add_widget(Text("No music"))
         else:
-            track_list = Box({"width": container.get_width()})
+            track_list = Box({"orientation": "column", "width": container.get_width()})
 
             for i, media in enumerate(self.media_list):
                 background_color = Colors.black if i == self.index else Colors.white
@@ -63,6 +67,7 @@ class HomePage(Page):
 
                 track_list_item = Box(
                     {
+                        "orientation": "column",
                         "child_alignment": "center",
                         "spacing": 6,
                         "padding_horizontal": 18,

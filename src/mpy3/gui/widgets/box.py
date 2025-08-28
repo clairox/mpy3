@@ -73,7 +73,7 @@ class PartialBoxProps(PartialWidgetProps, total=False):
 
 DEFAULT_BOX_PROPS: BoxProps = {
     **DEFAULT_WIDGET_PROPS,
-    "orientation": "column",
+    "orientation": "row",
     "distribution": "center",
     "child_alignment": "start",
     "spacing": 0,

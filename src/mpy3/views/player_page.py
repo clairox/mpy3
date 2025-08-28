@@ -29,6 +29,7 @@ class PlayerPage(Page):
     def render(self) -> Box:
         container_widget = Box(
             {
+                "orientation": "column",
                 "spacing": 72,
                 "padding": 18,
                 "width": self.canvas.get_width(),
@@ -39,7 +40,9 @@ class PlayerPage(Page):
         meta = self.media.meta
 
         # Track Info
-        track_info_widget = Box({"spacing": 4, "padding_left": 2})
+        track_info_widget = Box(
+            {"orientation": "column", "spacing": 4, "padding_left": 2}
+        )
         track_artist_widget = Text(
             meta["artist"] if meta else "Unknown Artist", {"font_size": 24}
         )
@@ -52,7 +55,7 @@ class PlayerPage(Page):
         time_elapsed = self.media_player.get_time()
         track_duration = self.media.duration
 
-        time_container = Box({"orientation": "row", "spacing": 8, "padding_left": 2})
+        time_container = Box({"spacing": 8, "padding_left": 2})
         time_elapsed_widget = Text(time_from_ms(time_elapsed), {"font_size": 26})
         slash_widget = Text("/", {"font_size": 26})
         track_duration_widget = Text(time_from_ms(track_duration), {"font_size": 26})
@@ -65,6 +68,7 @@ class PlayerPage(Page):
 
         track_progress_container = Box(
             {
+                "orientation": "column",
                 "spacing": 8,
                 "width": container_widget.get_width()
                 - container_widget.padding.left
