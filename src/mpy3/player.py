@@ -179,7 +179,9 @@ class MediaPlayer:
         )
         time_from_bytes = samples_played / self.sample_rate
 
-        return max(elapsed, time_from_bytes)
+        t = math.floor(min(max(elapsed, time_from_bytes) * 1000, self.media.duration))
+
+        return t
 
     def pause(self) -> None:
         if self.process and not self.paused:
