@@ -10,3 +10,6 @@ class Page:
 
     def render(self) -> Box:
         return Box()
+
+    def cleanup(self) -> None:
+        pass

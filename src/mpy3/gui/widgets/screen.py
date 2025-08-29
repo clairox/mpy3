@@ -23,6 +23,9 @@ class Screen:
     def add_event_listener(self, event: EventName, callback: EventCallback) -> None:
         self.event_dispatcher.add_event_listener(event, callback)
 
+    def remove_event_listener(self, event: EventName, callback: EventCallback) -> None:
+        self.event_dispatcher.remove_event_listener(event, callback)
+
     def update(self) -> None:
         offset = Vector(0, 0)
         for widget in self.children:

@@ -91,3 +91,6 @@ class PlayerPage(Page):
         container_widget.add_widget(track_progress_container)
 
         return container_widget
+
+    def cleanup(self) -> None:
+        self.screen.remove_event_listener("onplay", self.handle_play)

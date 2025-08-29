@@ -101,3 +101,8 @@ class HomePage(Page):
             container.add_widget(track_list)
 
         return container
+
+    def cleanup(self) -> None:
+        self.screen.remove_event_listener("onplay", self.handle_play)
+        self.screen.remove_event_listener("ondown", self.handle_down)
+        self.screen.remove_event_listener("onup", self.handle_up)
