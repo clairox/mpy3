@@ -4,7 +4,8 @@
 - [ ] Add parent styling inheritance
 - [ ] Set child width on render
 - [ ] Render only on state change
+- [ ] Add space between distribution
 
 # In progress
 
-- [ ] Add space between distribution
+- [ ] Overhaul widgets
