@@ -7,7 +7,7 @@ InputEventName = Literal["onplay", "onstop", "onright", "onleft", "ondown", "onu
 
 KEY_EVENTS: dict[Key | str, InputEventName] = {
     Key.space: "onplay",
-    Key.esc: "onstop",
+    Key.backspace: "onstop",
     Key.right: "onright",
     Key.left: "onleft",
     Key.down: "ondown",

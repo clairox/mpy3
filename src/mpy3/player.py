@@ -153,10 +153,7 @@ class MediaPlayer:
             self.stream.write(data)
             self.total_bytes_played += len(data)
 
-        self.stream.close()
-        if self.process.poll() is None:
-            self.process.terminate()
-
+        self.stream = None
         self.process = None
 
         self.paused = True
@@ -189,7 +186,16 @@ class MediaPlayer:
             self.pause_time = time.time()
 
     def stop(self) -> None:
-        pass
+        if self.stream is None or self.process is None:
+            return
+
+        self.stream.stop_stream()
+        self.stream = None
+        self.process = None
+
+        self.paused = True
+        self.pause_time = None
+        self.start_time = None
 
     def seek(self) -> None:
         pass

@@ -19,12 +19,16 @@ class PlayerPage(Page):
         self.media_player.play_until_done()
 
         self.screen.add_event_listener("onplay", self.handle_play)
+        self.screen.add_event_listener("onstop", self.handle_stop)
 
     def handle_play(self, _: Event) -> None:
         if self.media_player.paused:
             self.media_player.play_until_done()
         else:
             self.media_player.pause()
+
+    def handle_stop(self, _: Event) -> None:
+        self.media_player.stop()
 
     def render(self) -> Box:
         container_widget = Box(
@@ -94,3 +98,4 @@ class PlayerPage(Page):
 
     def cleanup(self) -> None:
         self.screen.remove_event_listener("onplay", self.handle_play)
+        self.screen.remove_event_listener("onstop", self.handle_stop)
