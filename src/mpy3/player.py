@@ -44,7 +44,7 @@ class Media:
         # ffprobe outputs duration in seconds, we are using milliseconds
         return int(duration * 1000)
 
-    def parse_meta(self):
+    def parse_meta(self) -> None:
         result = subprocess.run(
             [
                 "ffprobe",
