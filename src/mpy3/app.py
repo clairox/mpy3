@@ -1,43 +1,20 @@
-import pygame
+from pathlib import Path
 
-from mpy3.gui.widgets.canvas import Canvas
-from mpy3.gui.widgets.screen import Screen
-from mpy3.router import router
-from mpy3.views.home_page import HomePage
-from mpy3.views.player_page import PlayerPage
+from mpy3.player import Media
 
-pygame.init()
-pygame.display.set_caption("mpy3")
-
-screen = Screen()
-canvas = Canvas(screen)
-clock = pygame.time.Clock()
+DEFAULT_MEDIA_DIR = Path.home() / "mpy3/tracks/"
 
 
 class App:
     def __init__(self) -> None:
-        router.init_router(screen, canvas, {"/": HomePage, "/player": PlayerPage})
+        media_dir = Path(DEFAULT_MEDIA_DIR)
+        if not media_dir.exists():
+            Path.mkdir(media_dir, parents=True)
 
-    def run(self) -> None:
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+        unsorted_media_list: list[Media] = []
+        for mrl in media_dir.iterdir():
+            media = Media(mrl)
+            media.parse_meta()
+            unsorted_media_list.append(media)
 
-            self._render_current_page()
-            screen.update()
-
-            pygame.display.flip()
-            clock.tick(60)
-
-        pygame.quit()
-
-    def _render_current_page(self) -> None:
-        if router.current_route is None:
-            raise TypeError("Current route should not be None")
-
-        page = router.current_route.render()
-
-        canvas.clear()
-        canvas.add_widget(page)
+        media_list = sorted(unsorted_media_list, key=lambda media: media.title)
