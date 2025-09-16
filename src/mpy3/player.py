@@ -18,7 +18,7 @@ class Media:
         self.duration = self._get_duration()
         self.meta = None
 
-    def _get_duration(self):
+    def _get_duration(self) -> int:
         result = subprocess.run(
             [
                 "ffprobe",
@@ -40,8 +40,9 @@ class Media:
         duration = float(
             json.loads(response_json).get("format", {}).get("duration", -1)
         )
-        duration_in_millis = floor(duration * 1000)
-        return duration_in_millis
+
+        # ffprobe outputs duration in seconds, we are using milliseconds
+        return int(duration * 1000)
 
     def parse_meta(self):
         result = subprocess.run(
