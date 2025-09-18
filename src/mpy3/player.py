@@ -3,7 +3,6 @@ import math
 import subprocess
 import threading
 import time
-from math import floor
 from pathlib import Path
 
 import pyaudio
@@ -82,6 +81,7 @@ class MediaPlayer:
         self.playback_thread = None
         self.p = pyaudio.PyAudio()
         self.paused = False
+        self.stopped = False
 
         self.start_time = None
         self.pause_time = None
@@ -126,6 +126,7 @@ class MediaPlayer:
             self.playback_thread = threading.Thread(target=self._playback)
             self.playback_thread.start()
             self.paused = False
+            self.stopped = False
         elif self.paused:
             if self.pause_time is None:
                 raise ValueError('"self.pause_time" has not been set.')
@@ -144,6 +145,9 @@ class MediaPlayer:
             raise ValueError('"self.stream" has not been set.')
 
         while True:
+            if self.stopped:
+                break
+
             if self.paused:
                 continue
 
@@ -154,11 +158,15 @@ class MediaPlayer:
             self.stream.write(data)
             self.total_bytes_played += len(data)
 
+        self.process.terminate()
+        self.stream.stop_stream()
+        self.stream.close()
         self.stream = None
         self.process = None
 
-        self.paused = True
-        self.pause_time = time.time()
+        if self.stopped:
+            self.pause_time = None
+            self.start_time = None
 
     def get_time(self) -> float:
         if self.start_time is None:
@@ -187,16 +195,9 @@ class MediaPlayer:
             self.pause_time = time.time()
 
     def stop(self) -> None:
-        if self.stream is None or self.process is None:
-            return
-
-        self.stream.stop_stream()
-        self.stream = None
-        self.process = None
-
-        self.paused = True
-        self.pause_time = None
-        self.start_time = None
+        if self.process and not self.stopped:
+            self.paused = True
+            self.stopped = True
 
     def seek(self) -> None:
         pass
