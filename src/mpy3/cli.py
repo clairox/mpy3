@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from time import sleep
 
 import click
 
@@ -41,8 +40,12 @@ def main(media_url: str):
             else:
                 player.pause()
         elif key == Key.LEFT:
-            print("Fast Forwarding...")
+            player.fast_forward()
         elif key == Key.RIGHT:
-            print("Rewinding...")
+            player.rewind()
+
+        # Test key
+        elif key == Key.T:
+            pass
 
     KeyboardListener().listen(handle_input)

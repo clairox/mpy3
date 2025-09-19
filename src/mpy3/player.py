@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pyaudio
 
+from mpy3.utils import time_from_ms
+
 CHUNK = 1024
+SEEK_INTERVAL_IN_SECONDS = 5
 
 
 class Media:
@@ -168,7 +171,7 @@ class MediaPlayer:
             self.pause_time = None
             self.start_time = None
 
-    def get_time(self) -> float:
+    def get_time(self) -> int:
         if self.start_time is None:
             return 0
 
@@ -199,11 +202,49 @@ class MediaPlayer:
             self.paused = True
             self.stopped = True
 
-    def seek(self) -> None:
-        pass
+    def seek(self, t: float) -> None:
+        if self.process is None:
+            return
+
+        duration_in_secs = self.media.duration / 1000
+        if t < 0:
+            t = 0
+        elif t > duration_in_secs:
+            t = duration_in_secs
+
+        self.process.kill()
+        self.process = subprocess.Popen(
+            [
+                "ffmpeg",
+                "-ss",
+                str(t),
+                "-i",
+                self.media.mrl,
+                "-f",
+                "s16le",
+                "-acodec",
+                "pcm_s16le",
+                "-ar",
+                str(self.sample_rate),
+                "-ac",
+                str(self.channels),
+                "pipe:1",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+
+        self.start_time = time.time() - t
+
+        current_sample = round(t * self.sample_rate)
+        self.total_bytes_played = current_sample * (
+            self.channels * self.bytes_per_sample
+        )
+
+        print(time_from_ms(int(t * 1000)))
 
     def fast_forward(self) -> None:
-        pass
+        self.seek((self.get_time() / 1000) + SEEK_INTERVAL_IN_SECONDS)
 
     def rewind(self) -> None:
-        pass
+        self.seek((self.get_time() / 1000) - SEEK_INTERVAL_IN_SECONDS)
