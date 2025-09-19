@@ -14,6 +14,7 @@ class Key(Enum):
     RIGHT = 2
     LEFT = 3
     NULL = 4
+    T = 5
 
 
 KEYMAP = {
@@ -21,6 +22,7 @@ KEYMAP = {
     " ": Key.SPACE,
     "\x1b[D": Key.RIGHT,
     "\x1b[C": Key.LEFT,
+    "t": Key.T,
 }
 
 
