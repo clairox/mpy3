@@ -198,8 +198,6 @@ class MediaPlayer:
             self.channels * self.bytes_per_sample
         )
 
-        print(time_from_ms(int(time)))
-
     def fast_forward(self) -> None:
         self.seek((self.get_time()) + SEEK_INTERVAL)
 
