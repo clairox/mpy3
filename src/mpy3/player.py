@@ -2,7 +2,7 @@ import json
 import math
 import subprocess
 import threading
-import time
+import time as t
 from pathlib import Path
 
 import pyaudio
@@ -10,7 +10,12 @@ import pyaudio
 from mpy3.utils import time_from_ms
 
 CHUNK = 1024
-SEEK_INTERVAL_IN_SECONDS = 5
+SEEK_INTERVAL = 5000
+MILLISECONDS = 1000
+
+
+def system_time() -> int:
+    return int(t.time() * MILLISECONDS)
 
 
 class Media:
@@ -90,41 +95,13 @@ class MediaPlayer:
         self.pause_time = None
         self.total_bytes_played = 0
 
-    def _start_process(self, start_time: int = 0) -> None:
-        self.process = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-ss",
-                str(start_time),
-                "-i",
-                self.media.mrl,
-                "-f",
-                "s16le",
-                "-acodec",
-                "pcm_s16le",
-                "-ar",
-                str(self.sample_rate),
-                "-ac",
-                str(self.channels),
-                "pipe:1",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-        )
-
-        self.stream = self.p.open(
-            format=pyaudio.paInt16,
-            channels=self.channels,
-            rate=self.sample_rate,
-            output=True,
-        )
-
     def play_until_done(self) -> None:
         print(f"Playing {self.media.mrl.name}")
 
         if self.process is None:
-            self._start_process()
-            self.start_time = time.time()
+            self.process = self._start_process()
+            self.stream = self._open_stream()
+            self.start_time = system_time()
             self.total_bytes_played = 0
             self.playback_thread = threading.Thread(target=self._playback)
             self.playback_thread.start()
@@ -138,7 +115,7 @@ class MediaPlayer:
                 raise ValueError('"self.start_time" has not been set.')
 
             self.paused = False
-            self.start_time += time.time() - self.pause_time
+            self.start_time += system_time() - self.pause_time
 
     def _playback(self) -> None:
         if self.process is None or self.process.stdout is None:
@@ -181,43 +158,60 @@ class MediaPlayer:
 
             elapsed = self.pause_time - self.start_time
         else:
-            elapsed = time.time() - self.start_time
+            elapsed = system_time() - self.start_time
 
         samples_played = self.total_bytes_played / (
             self.channels * self.bytes_per_sample
         )
-        time_from_bytes = samples_played / self.sample_rate
+        time_from_bytes = (samples_played / self.sample_rate) * MILLISECONDS
 
-        t = math.floor(min(max(elapsed, time_from_bytes) * 1000, self.media.duration))
+        t = math.floor(min(max(elapsed, time_from_bytes), self.media.duration))
 
         return t
 
     def pause(self) -> None:
         if self.process and not self.paused:
             self.paused = True
-            self.pause_time = time.time()
+            self.pause_time = system_time()
 
     def stop(self) -> None:
         if self.process and not self.stopped:
             self.paused = True
             self.stopped = True
 
-    def seek(self, t: float) -> None:
+    def seek(self, time: int) -> None:
         if self.process is None:
             return
 
-        duration_in_secs = self.media.duration / 1000
-        if t < 0:
-            t = 0
-        elif t > duration_in_secs:
-            t = duration_in_secs
+        if time < 0:
+            time = 0
+        elif time > self.media.duration:
+            time = self.media.duration
 
         self.process.kill()
-        self.process = subprocess.Popen(
+        self.process = self._start_process(time)
+
+        self.start_time = system_time() - time
+
+        current_sample = round((time / MILLISECONDS) * self.sample_rate)
+        self.total_bytes_played = current_sample * (
+            self.channels * self.bytes_per_sample
+        )
+
+        print(time_from_ms(int(time)))
+
+    def fast_forward(self) -> None:
+        self.seek((self.get_time()) + SEEK_INTERVAL)
+
+    def rewind(self) -> None:
+        self.seek((self.get_time()) - SEEK_INTERVAL)
+
+    def _start_process(self, start_time: int = 0) -> subprocess.Popen[bytes]:
+        return subprocess.Popen(
             [
                 "ffmpeg",
                 "-ss",
-                str(t),
+                str(start_time / MILLISECONDS),
                 "-i",
                 self.media.mrl,
                 "-f",
@@ -234,17 +228,10 @@ class MediaPlayer:
             stderr=subprocess.DEVNULL,
         )
 
-        self.start_time = time.time() - t
-
-        current_sample = round(t * self.sample_rate)
-        self.total_bytes_played = current_sample * (
-            self.channels * self.bytes_per_sample
+    def _open_stream(self) -> pyaudio.Stream:
+        return self.p.open(
+            format=pyaudio.paInt16,
+            channels=self.channels,
+            rate=self.sample_rate,
+            output=True,
         )
-
-        print(time_from_ms(int(t * 1000)))
-
-    def fast_forward(self) -> None:
-        self.seek((self.get_time() / 1000) + SEEK_INTERVAL_IN_SECONDS)
-
-    def rewind(self) -> None:
-        self.seek((self.get_time() / 1000) - SEEK_INTERVAL_IN_SECONDS)
